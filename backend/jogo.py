@@ -1,14 +1,10 @@
 # jogo.py
 
-from rolador_de_dados import rolar_dados
+# Importamos a nossa nova função do db_manager
+from db_manager import buscar_monstro_aleatorio
 from criador_de_personagem import criar_personagem_interativo
 from gerenciador_de_personagens import salvar_personagem, carregar_personagem
-# Nossos novos módulos!
-from monstro import Monstro
 from combate import iniciar_combate
-
-def calcular_modificador(valor_atributo):
-    return (valor_atributo - 10) // 2
 
 # --- Menu Inicial do Jogo (sem alterações) ---
 jogador = None
@@ -33,7 +29,7 @@ while jogador is None:
 print(f"\n--- A aventura de {jogador.nome} começa! ---")
 while True:
     print("\n--- O que você deseja fazer? ---")
-    print("1. Procurar encrenca (Combate!)") # NOVA OPÇÃO
+    print("1. Procurar encrenca (Combate!)")
     print("2. Ver a ficha completa do personagem")
     print("3. Salvar progresso")
     print("Digite 'sair' para terminar a aventura.")
@@ -41,21 +37,27 @@ while True:
     escolha = input("> ").strip()
 
     if escolha == '1':
-        # Cria uma instância de um monstro para a batalha
-        goblin = Monstro(nome="Goblin", vida_maxima=7, ataque_bonus=4, dano_dado="1d6", defesa=12, xp_oferecido=50, ouro_drop=10)
+        # --- LÓGICA DE COMBATE TOTALMENTE DINÂMICA ---
+        print("\nVocê explora os arredores em busca de ação...")
         
-        # Chama a função de combate e passa o jogador e o monstro
-        vitoria = iniciar_combate(jogador, goblin)
+        # Chamamos nossa nova função para buscar um monstro aleatório no DB.
+        monstro_encontrado = buscar_monstro_aleatorio()
         
-        if vitoria:
-            print("Você se sente mais forte após a batalha!")
-            # Aqui poderíamos dar recompensas (ouro, XP, etc.)
+        # Verificamos se um monstro foi realmente encontrado.
+        if monstro_encontrado:
+            # Se sim, iniciamos o combate com a criatura que o DB nos deu!
+            vitoria = iniciar_combate(jogador, monstro_encontrado)
+            
+            if vitoria:
+                print("Você se sente mais forte após a batalha!")
+            else:
+                print("Você precisa descansar para recuperar suas forças...")
+            
+            # Após o combate, salvamos o estado do jogador (vida, xp, ouro, etc.)
+            salvar_personagem(jogador)
         else:
-            print("Você precisa descansar para recuperar suas forças...")
-            # Aqui poderíamos aplicar penalidades ou levar o jogador para uma "cidade"
-        
-        # O estado do jogador (vida, etc.) foi alterado, então é uma boa ideia salvar.
-        salvar_personagem(jogador)
+            # Se não, informamos ao jogador que nada aconteceu.
+            print("...mas a área parece estranhamente calma. Nenhum monstro encontrado.")
 
     elif escolha == '2':
         jogador.mostrar_ficha()
