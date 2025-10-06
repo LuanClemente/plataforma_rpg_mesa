@@ -1,60 +1,68 @@
-# --- Importando as nossas ferramentas ---
-# Do arquivo personagem.py, estamos a importar a classe Personagem.
-from personagem import Personagem
-# Do arquivo rolador_de_dados.py, estamos a importar a função rolar_dados.
+# jogo.py
+
 from rolador_de_dados import rolar_dados
+from criador_de_personagem import criar_personagem_interativo
+from gerenciador_de_personagens import salvar_personagem, carregar_personagem
+# Nossos novos módulos!
+from monstro import Monstro
+from combate import iniciar_combate
 
 def calcular_modificador(valor_atributo):
-    """
-    Calcula o modificador de um atributo seguindo a regra do D&D 5e.
-    Fórmula: (valor - 10) / 2, arredondado para baixo.
-    """
     return (valor_atributo - 10) // 2
 
-# --- Configuração Inicial do Jogo ---
-print("--- Aventura a postos! ---")
+# --- Menu Inicial do Jogo (sem alterações) ---
+jogador = None
+while jogador is None:
+    print("\n--- BEM-VINDO À PLATAFORMA RPG DE MESA ---")
+    print("1. Criar Novo Personagem")
+    print("2. Carregar Personagem Existente")
+    escolha_inicial = input("> ").strip()
+    if escolha_inicial == '1':
+        jogador = criar_personagem_interativo()
+        jogador.ouro = 15
+        jogador.adicionar_item("Adaga")
+        jogador.adicionar_item("Mapa da região")
+        salvar_personagem(jogador)
+    elif escolha_inicial == '2':
+        nome = input("Qual o nome do personagem que deseja carregar? ")
+        jogador = carregar_personagem(nome)
+    else:
+        print("Opção inválida.")
 
-# Criamos o nosso herói para esta sessão de jogo.
-jogador = Personagem(nome="Kael", classe="Ladino", nivel=3)
-
-# Alteramos um atributo para o nosso teste ficar mais interessante.
-jogador.atributos["Destreza"] = 16 
-
-# --- Loop Principal do Jogo ---
+# --- Loop Principal do Jogo ATUALIZADO ---
+print(f"\n--- A aventura de {jogador.nome} começa! ---")
 while True:
     print("\n--- O que você deseja fazer? ---")
-    print("1. Fazer um teste de Destreza")
-    print("2. Ver a ficha do personagem")
+    print("1. Procurar encrenca (Combate!)") # NOVA OPÇÃO
+    print("2. Ver a ficha completa do personagem")
+    print("3. Salvar progresso")
     print("Digite 'sair' para terminar a aventura.")
 
     escolha = input("> ").strip()
 
     if escolha == '1':
-        # Pega o valor do atributo 'Destreza' do nosso jogador.
-        valor_destreza = jogador.atributos["Destreza"]
+        # Cria uma instância de um monstro para a batalha
+        goblin = Monstro(nome="Goblin", vida_maxima=7, ataque_bonus=4, dano_dado="1d6", defesa=12, xp_oferecido=50, ouro_drop=10)
         
-        # Calcula o modificador correspondente.
-        modificador = calcular_modificador(valor_destreza)
+        # Chama a função de combate e passa o jogador e o monstro
+        vitoria = iniciar_combate(jogador, goblin)
         
-        # Rola um d20 usando a nossa função importada.
-        # O '_' é para ignorar o segundo valor retornado (a lista de rolagens).
-        resultado_dado, _ = rolar_dados("d20")
+        if vitoria:
+            print("Você se sente mais forte após a batalha!")
+            # Aqui poderíamos dar recompensas (ouro, XP, etc.)
+        else:
+            print("Você precisa descansar para recuperar suas forças...")
+            # Aqui poderíamos aplicar penalidades ou levar o jogador para uma "cidade"
         
-        # Soma o resultado do dado com o modificador.
-        total_teste = resultado_dado + modificador
-        
-        print("\n--- Teste de Destreza ---")
-        print(f"Rolagem do d20: {resultado_dado}")
-        print(f"Modificador de Destreza ({valor_destreza}): +{modificador}")
-        print(f"Resultado Total: {total_teste}")
+        # O estado do jogador (vida, etc.) foi alterado, então é uma boa ideia salvar.
+        salvar_personagem(jogador)
 
     elif escolha == '2':
-        # Chama o método do próprio objeto para mostrar a sua ficha.
         jogador.mostrar_ficha()
-        
+    elif escolha == '3':
+        salvar_personagem(jogador)
     elif escolha.lower() == 'sair':
         print("A sua jornada termina aqui... por enquanto.")
-        break # Encerra o loop e o programa.
-        
+        break
     else:
         print("Comando desconhecido, nobre aventureiro.")
