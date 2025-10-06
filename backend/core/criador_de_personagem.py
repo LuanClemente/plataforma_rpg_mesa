@@ -1,5 +1,5 @@
 # Importamos a nossa classe Personagem, pois vamos criar um objeto dela.
-from personagem import Personagem
+from .personagem import Personagem
 
 def criar_personagem_interativo():
     """
