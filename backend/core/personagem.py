@@ -87,16 +87,18 @@ class Personagem:
         # Aumenta a vida máxima do personagem.
         aumento_vida = max(1, (self.atributos["Constituição"] - 10) // 2) + 5
         self.vida_maxima += aumento_vida
-        # Ao subir de nível, o personagem é totalmente curado.
+        # Ao subir de nível, o personagem é totalmente curado e sua mana é restaurada.
         self.vida_atual = self.vida_maxima
+        self.mana_atual = self.mana_maxima
 
         # Imprime uma mensagem de celebração para o jogador.
         print("\n" + "="*42)
         print(f"  PARABÉNS! Você subiu para o Nível {self.nivel}!  ")
         print("="*42)
+        print(f"Vida e Mana totalmente restauradas!")
         print(f"Vida máxima aumentada para {self.vida_maxima}!")
 
-        # Loop interativo para o jogador escolher um atributo para melhorar.
+        # --- Seção de Aumento de Atributo (Loop interativo) ---
         print("Escolha um atributo para aumentar em 1 ponto:")
         # Pega a lista de nomes dos atributos.
         atributos_lista = list(self.atributos.keys())
@@ -125,27 +127,47 @@ class Personagem:
             except ValueError:
                 # Informa se o jogador digitar algo que não seja um número.
                 print("Entrada inválida. Digite um número.")
+        
+        # --- Seção de Aprendizado de Habilidades ---
+        # Aqui definimos quais habilidades são aprendidas em cada nível para cada classe.
+        if self.classe.lower() == 'mago':
+            if self.nivel == 2:
+                self.aprender_habilidade("Bola de Fogo")
+            if self.nivel == 3:
+                self.aprender_habilidade("Toque Curativo")
+        elif self.classe.lower() == 'guerreiro':
+            if self.nivel == 3:
+                self.aprender_habilidade("Ataque Poderoso")
+
+    def aprender_habilidade(self, nome_habilidade):
+        """Adiciona uma nova habilidade à lista de habilidades conhecidas pelo personagem."""
+        # Verifica se o personagem já não conhece a habilidade para evitar duplicatas.
+        if nome_habilidade not in self.habilidades:
+            # Adiciona o nome da habilidade à lista do personagem.
+            self.habilidades.append(nome_habilidade)
+            # Imprime uma mensagem empolgante para o jogador.
+            print(f"Você aprendeu uma nova habilidade: {nome_habilidade}!")
 
     def adicionar_item(self, item):
         """Adiciona um item (string) à lista de inventário."""
+        # Adiciona o item ao final da lista de inventário.
         self.inventario.append(item)
-        # Não imprimimos nada aqui para não poluir a tela (a loja já informa).
 
     def remover_item(self, item):
         """Remove um item do inventário, se ele existir."""
-        # Verifica se o item está na lista antes de tentar removê-lo.
+        # Verifica se o item está na lista antes de tentar removê-lo para evitar erros.
         if item in self.inventario:
-            # Remove a primeira ocorrência do item.
+            # Remove a primeira ocorrência do item encontrado na lista.
             self.inventario.remove(item)
         else:
-            # Informa caso o item não seja encontrado (prevenção de erros).
-            print(f"Tentativa de remover item não existente: {item}")
+            # Informa no console caso o item não seja encontrado (ajuda a depurar erros).
+            print(f"AVISO: Tentativa de remover item não existente: {item}")
     
     def curar(self, quantidade):
         """Aumenta a vida atual do personagem, sem ultrapassar a vida máxima."""
         # Adiciona a quantidade de cura à vida atual.
         self.vida_atual += quantidade
-        # Se a vida passar do máximo, define-a como o máximo.
+        # Se a vida passar do máximo, define-a como o valor máximo.
         if self.vida_atual > self.vida_maxima:
             self.vida_atual = self.vida_maxima
         # Informa ao jogador sobre a cura.
@@ -155,19 +177,30 @@ class Personagem:
         """Imprime no console uma visualização completa e organizada da ficha do personagem."""
         # Cabeçalho da ficha.
         print("\n--- FICHA DE PERSONAGEM ---")
-        # Linha com informações básicas.
+        # Linha com informações básicas: Nome, Classe e Nível.
         print(f"Nome: {self.nome} | Classe: {self.classe} | Nível: {self.nivel}")
-        # Linha de progressão.
+        # Linha de progressão de experiência.
         print(f"XP: {self.xp_atual}/{self.xp_proximo_nivel}")
-        # Linha de recursos (HP, MP, Ouro).
+        # Linha de recursos: Vida, Mana e Ouro.
         print(f"Vida: {self.vida_atual}/{self.vida_maxima} | Mana: {self.mana_atual}/{self.mana_maxima} | Ouro: {self.ouro}")
-        # Divisor visual.
+        # Divisor visual para organizar a ficha.
         print("---------------------------")
         # Seção de atributos.
         print("Atributos:")
-        # Itera sobre o dicionário de atributos para imprimir cada um.
+        # Itera sobre o dicionário de atributos para imprimir cada um com seu valor.
         for atributo, valor in self.atributos.items():
             print(f"  {atributo}: {valor}")
+        # Divisor visual.
+        print("---------------------------")
+        # Seção de habilidades conhecidas.
+        print("Habilidades:")
+        # Se a lista de habilidades estiver vazia, imprime "(Nenhuma)".
+        if not self.habilidades:
+            print("  (Nenhuma)")
+        # Se não, itera sobre a lista e imprime cada habilidade.
+        else:
+            for habilidade in self.habilidades:
+                print(f"  - {habilidade}")
         # Divisor visual.
         print("---------------------------")
         # Seção de inventário.
@@ -175,9 +208,9 @@ class Personagem:
         # Se a lista de inventário estiver vazia, imprime "(Vazio)".
         if not self.inventario:
             print("  (Vazio)")
-        # Se não, itera sobre a lista e imprime cada item.
+        # Se não, itera sobre la lista e imprime cada item.
         else:
             for item in self.inventario:
                 print(f"  - {item}")
-        # Divisor visual.
+        # Divisor visual final.
         print("---------------------------")
