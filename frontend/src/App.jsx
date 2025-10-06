@@ -1,35 +1,37 @@
 // frontend/src/App.jsx
 
-import { useState, useEffect } from 'react'
-// 1. Importamos nosso novo componente! O caminho é relativo a este arquivo.
-import MonsterCard from './components/MonsterCard'
+// Importa as ferramentas de roteamento que instalamos:
+// Routes: O container que gerencia qual rota está ativa.
+// Route: Define uma regra individual ("quando a URL for X, mostre o componente Y").
+// Link: Cria links de navegação que não recarregam a página.
+import { Routes, Route, Link } from 'react-router-dom';
 
+// Importa os nossos novos componentes de página.
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+
+
+// Esta é a nova função do nosso componente App.
 function App() {
-  const [monstros, setMonstros] = useState([])
-
-  useEffect(() => {
-    // A lógica para buscar os dados na API continua a mesma.
-    fetch('http://127.0.0.1:5001/api/monstros')
-      .then(response => response.json())
-      .then(data => setMonstros(data))
-      .catch(error => console.error("Erro ao buscar monstros:", error));
-  }, [])
-
   return (
-    // Adicionamos uma div principal com uma classe para estilização.
     <div className="app-container">
-      <h1>Bestiário da Campanha</h1>
-      {/* Um container para organizar nossas cartas de monstros. */}
-      <div className="monster-list">
-        {/* Em vez de criar um <li>, agora criamos um componente <MonsterCard> para cada monstro. */}
-        {monstros.map(monstro => (
-          // Passamos os dados do monstro atual para o componente através da prop 'monstro'.
-          // A 'key' continua sendo essencial para o React.
-          <MonsterCard key={monstro.nome} monstro={monstro} />
-        ))}
-      </div>
+      <nav className="main-nav">
+        {/* Adicionaremos um link para a página de registro na LoginPage */}
+        <Link to="/">Login</Link>
+        <Link to="/home">Bestiário</Link>
+      </nav>
+
+      <main>
+        <Routes>
+          <Route path="/" element={<LoginPage />} />
+          <Route path="/home" element={<HomePage />} />
+          {/* 2. Adicione a nova rota para o cadastro! */}
+          <Route path="/registrar" element={<RegisterPage />} />
+        </Routes>
+      </main>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

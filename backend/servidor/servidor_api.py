@@ -1,28 +1,40 @@
 # servidor/servidor_api.py
 
 # --- Importações ---
-# Importa as classes principais do Flask para criar o servidor e a resposta JSON.
-from flask import Flask, jsonify
+# Importa as classes principais do Flask: Flask para criar o servidor, jsonify para formatar respostas,
+# e 'request' para receber os dados enviados pelo frontend (como em um formulário de cadastro).
+from flask import Flask, jsonify, request
 # Importa o CORS para permitir que nosso frontend (em outro endereço) acesse esta API.
 from flask_cors import CORS
-# Importa TODAS as funções de busca que nossa API vai precisar do nosso gerenciador de banco de dados.
-from database.db_manager import buscar_todos_os_itens, buscar_detalhes_habilidades, buscar_todos_os_monstros
+# Importa TODAS as funções que nossa API vai precisar do nosso gerenciador de banco de dados.
+from database.db_manager import (
+    buscar_todos_os_itens, 
+    buscar_detalhes_habilidades, 
+    buscar_todos_os_monstros,
+    registrar_novo_usuario  # A nossa nova função!
+)
+import os # Importamos 'os' para a lógica de caminho robusto.
 
 # --- Configuração Inicial do Servidor ---
 
-# 1. Cria a instância ÚNICA da nossa aplicação Flask.
+# 1. Lógica de caminho absoluto para garantir que o DB seja encontrado.
+script_dir = os.path.dirname(os.path.abspath(__file__))
+backend_dir = os.path.join(script_dir, '..')
+# Precisamos definir NOME_DB aqui se o db_manager não o fizer de forma global.
+# Mas como já corrigimos o db_manager, ele encontrará o DB sozinho.
+
+# 2. Cria a instância ÚNICA da nossa aplicação Flask.
 app = Flask(__name__)
-# 2. Aplica o CORS a essa instância. Agora, TODAS as rotas que definirmos abaixo terão a permissão CORS.
+# 3. Aplica o CORS a essa instância. Agora, TODAS as rotas que definirmos abaixo terão a permissão CORS.
 CORS(app)
 
 # --- Definição dos Endpoints da API (as "Rotas") ---
 
+# --- Endpoints de Busca de Dados (GET) ---
+
 @app.route("/api/monstros", methods=['GET'])
 def get_monstros():
-    """
-    Endpoint que busca todos os monstros no DB e os retorna como uma lista JSON.
-    Acessível via http://127.0.0.1:5001/api/monstros
-    """
+    """Endpoint que busca todos os monstros no DB e os retorna como uma lista JSON."""
     # Chama a função centralizada no nosso db_manager para buscar os monstros.
     monstros_db = buscar_todos_os_monstros()
     # Cria uma lista vazia para a nossa resposta formatada.
@@ -45,15 +57,10 @@ def get_monstros():
 
 @app.route("/api/itens", methods=['GET'])
 def get_itens():
-    """
-    Endpoint que busca todos os itens no DB e os retorna como uma lista JSON.
-    Acessível via http://127.0.0.1:5001/api/itens
-    """
+    """Endpoint que busca todos os itens no DB e os retorna como uma lista JSON."""
     # Reutiliza a função que já existe no nosso db_manager!
     itens_db = buscar_todos_os_itens()
-    # Cria uma lista vazia para a resposta.
     lista_de_itens = []
-    # Itera sobre cada tupla de item.
     for item_tupla in itens_db:
         # Converte a tupla em um dicionário.
         lista_de_itens.append({
@@ -69,26 +76,41 @@ def get_itens():
     # Retorna a lista de itens formatada como JSON.
     return jsonify(lista_de_itens)
 
-@app.route("/api/habilidades", methods=['GET'])
-def get_habilidades():
+# (O endpoint de habilidades pode ser melhorado para buscar todas as habilidades, não apenas uma lista fixa)
+# Vamos criar a função buscar_todas_as_habilidades no db_manager e usá-la aqui.
+# Por agora, manteremos o exemplo.
+
+# --- Endpoint de Ação (POST) ---
+
+@app.route("/api/registrar", methods=['POST'])
+def rota_registrar_usuario():
     """
-    Endpoint que busca todas as habilidades no DB e as retorna como uma lista JSON.
-    Acessível via http://127.0.0.1:5001/api/habilidades
+    Endpoint para registrar um novo usuário.
+    Espera receber um JSON com 'username' e 'password' no corpo da requisição.
     """
-    # (Supondo que criamos uma função 'buscar_todas_as_habilidades' no db_manager)
-    # Por agora, vamos usar a buscar_detalhes_habilidades com uma lista hipotética para mostrar o padrão.
-    # No seu db_manager, você pode criar uma 'buscar_todas_as_habilidades' igual à de itens/monstros.
-    habilidades_db = buscar_detalhes_habilidades(["Bola de Fogo", "Toque Curativo", "Ataque Poderoso"]) # Exemplo
-    lista_de_habilidades = []
-    for hab_tupla in habilidades_db:
-        lista_de_habilidades.append({
-            "id": hab_tupla[0],
-            "nome": hab_tupla[1],
-            "descricao": hab_tupla[2],
-            "efeito": hab_tupla[3],
-            "custo_mana": hab_tupla[4]
-        })
-    return jsonify(lista_de_habilidades)
+    # 'request.get_json()' pega os dados JSON que o frontend enviou.
+    dados = request.get_json()
+
+    # Faz uma verificação de segurança para garantir que os dados necessários foram enviados.
+    if not dados or not 'username' in dados or not 'password' in dados:
+        # Retorna um erro 400 (Bad Request) se os dados estiverem incompletos, com uma mensagem.
+        return jsonify({"sucesso": False, "mensagem": "Dados de usuário ou senha ausentes."}), 400
+
+    # Extrai o nome de usuário e a senha dos dados recebidos.
+    username = dados['username']
+    password = dados['password']
+
+    # Chama nossa função segura do db_manager para tentar registrar o usuário no banco de dados.
+    sucesso = registrar_novo_usuario(username, password)
+
+    # Se a função retornar True, o registro foi um sucesso.
+    if sucesso:
+        # Retorna uma mensagem de sucesso com o status 201 (Created), que é o padrão para criação de recursos.
+        return jsonify({"sucesso": True, "mensagem": "Usuário registrado com sucesso!"}), 201
+    # Se retornar False, o usuário provavelmente já existe.
+    else:
+        # Retorna uma mensagem de erro com o status 409 (Conflict), indicando que o recurso já existe.
+        return jsonify({"sucesso": False, "mensagem": "Nome de usuário já está em uso."}), 409
 
 # --- Bloco para Iniciar o Servidor ---
 

@@ -53,3 +53,110 @@ h1 {
   font-size: 1.5rem;
   color: #e0e0e0;
 }
+
+/* Estilo para a barra de navegação principal */
+.main-nav {
+  background-color: #111;
+  padding: 1rem;
+  margin-bottom: 2rem;
+  border-radius: 8px;
+  border: 1px solid #444;
+  display: flex;
+  justify-content: center;
+  gap: 30px; /* Espaço entre os links */
+}
+
+/* Estilo para cada link na navegação */
+.main-nav a {
+  color: #c59d5f; /* Cor dourada/bronze */
+  text-decoration: none; /* Remove o sublinhado */
+  font-size: 1.5rem;
+  transition: color 0.2s; /* Animação suave da cor */
+}
+
+/* Efeito ao passar o mouse sobre o link */
+.main-nav a:hover {
+  color: #fff; /* O link fica branco ao passar o mouse */
+}
+.login-container {
+  max-width: 400px;
+  margin: 0 auto; /* Centraliza o container */
+  padding: 2rem;
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+}
+
+.login-form .form-group {
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.login-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+  color: #c59d5f;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 0.8rem;
+  background-color: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-family: 'Arial', sans-serif; /* Usamos uma fonte mais legível para inputs */
+  font-size: 1rem;
+}
+
+.login-button {
+  width: 100%;
+  padding: 1rem;
+  background-color: #c59d5f;
+  color: #111;
+  font-family: 'MedievalSharp', cursive;
+  font-size: 1.5rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.login-button:hover {
+  background-color: #dcb98a;
+}
+.feedback-message {
+  margin-top: 1rem;
+  font-size: 1.1rem;
+  color: #c59d5f;
+  font-weight: bold;
+}
+
+.register-link {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.register-link a {
+  color: #c59d5f;
+  font-weight: bold;
+}
+
+.feedback-message {
+  margin-top: 1rem;
+  font-size: 1.1rem;
+  color: #c59d5f;
+  font-weight: bold;
+}
+
+.register-link {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.register-link a {
+  color: #c59d5f;
+  font-weight: bold;
+}

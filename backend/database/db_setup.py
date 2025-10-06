@@ -27,6 +27,15 @@ CREATE TABLE IF NOT EXISTS habilidades_base (...);
 """)
 print("Tabela 'habilidades_base' criada com sucesso!")
 
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome_usuario TEXT NOT NULL UNIQUE,
+    senha_hash TEXT NOT NULL
+);
+""")
+print("Tabela 'usuarios' verificada/criada com sucesso!")
+
 conexao.commit()
 conexao.close()
 print(f"Banco de dados '{NOME_DB}' configurado.")

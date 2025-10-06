@@ -6,6 +6,8 @@ import sqlite3
 import os
 # Importa a classe 'Monstro' para que possamos criar um objeto Monstro com os dados do DB.
 from core.monstro import Monstro
+# Importa a biblioteca 'bcrypt' para lidar com a segurança das senhas.
+import bcrypt
 
 # --- LÓGICA DE CAMINHO ABSOLUTO E ROBUSTO ---
 # Descobre o caminho absoluto para a pasta onde este script está localizado (a pasta 'database').
@@ -26,30 +28,19 @@ def buscar_monstro_aleatorio():
         conexao = sqlite3.connect(NOME_DB)
         # Cria o cursor para executar comandos.
         cursor = conexao.cursor()
-
         # Executa uma consulta SQL para buscar um monstro aleatório.
-        # - SELECT * FROM monstros_base: Seleciona todas as colunas da tabela de monstros.
-        # - ORDER BY RANDOM(): Embaralha todas as linhas da tabela aleatoriamente.
-        # - LIMIT 1: Pega apenas a primeira linha do resultado embaralhado.
         cursor.execute("SELECT * FROM monstros_base ORDER BY RANDOM() LIMIT 1")
-        
         # 'fetchone()' busca apenas um resultado da consulta.
         dados_monstro = cursor.fetchone()
-        
         # Fecha a conexão para liberar o recurso.
         conexao.close()
-
         # Verifica se um monstro foi realmente encontrado (a tabela poderia estar vazia).
         if dados_monstro:
             # "Hidrata" um objeto Monstro: cria uma instância da classe usando os dados da tupla do DB.
-            # Os dados vêm na ordem das colunas: [0]=id, [1]=nome, [2]=vida_maxima, etc.
             monstro_encontrado = Monstro(
-                nome=dados_monstro[1],
-                vida_maxima=dados_monstro[2],
-                ataque_bonus=dados_monstro[3],
-                dano_dado=dados_monstro[4],
-                defesa=dados_monstro[5],
-                xp_oferecido=dados_monstro[6],
+                nome=dados_monstro[1], vida_maxima=dados_monstro[2],
+                ataque_bonus=dados_monstro[3], dano_dado=dados_monstro[4],
+                defesa=dados_monstro[5], xp_oferecido=dados_monstro[6],
                 ouro_drop=dados_monstro[7]
             )
             # Retorna o objeto Monstro criado.
@@ -57,7 +48,6 @@ def buscar_monstro_aleatorio():
         else:
             # Se nenhum monstro for encontrado, retorna None.
             return None
-            
     except sqlite3.Error as e:
         # Se ocorrer qualquer erro relacionado ao SQLite, imprime uma mensagem de erro.
         print(f"Erro ao buscar monstro no banco de dados: {e}")
@@ -65,9 +55,7 @@ def buscar_monstro_aleatorio():
         return None
 
 def buscar_todos_os_itens():
-    """
-    Busca todos os itens da tabela 'itens_base' para serem usados, por exemplo, na loja.
-    """
+    """Busca todos os itens da tabela 'itens_base' para serem usados, por exemplo, na loja."""
     try:
         conexao = sqlite3.connect(NOME_DB)
         cursor = conexao.cursor()
@@ -84,11 +72,7 @@ def buscar_todos_os_itens():
         return []
 
 def buscar_detalhes_itens(nomes_dos_itens: list):
-    """
-    Busca no banco de dados os detalhes de uma lista específica de nomes de itens.
-    É usado para obter as propriedades dos itens que o jogador carrega no inventário.
-    """
-    # Se a lista de nomes de itens estiver vazia, retorna uma lista vazia para evitar uma consulta inútil.
+    """Busca no banco de dados os detalhes de uma lista específica de nomes de itens."""
     if not nomes_dos_itens:
         return []
     try:
@@ -96,7 +80,7 @@ def buscar_detalhes_itens(nomes_dos_itens: list):
         cursor = conexao.cursor()
         # Prepara os placeholders ('?') para a consulta. Teremos um '?' para cada nome na lista.
         placeholders = ', '.join('?' for _ in nomes_dos_itens)
-        # A cláusula 'WHERE nome IN (...)' é uma forma eficiente de buscar todas as linhas cujo nome está na lista fornecida.
+        # A cláusula 'WHERE nome IN (...)' busca todas as linhas cujo nome está na lista fornecida.
         query = f"SELECT * FROM itens_base WHERE nome IN ({placeholders})"
         # Executa a query, passando a lista de nomes para preencher os placeholders de forma segura.
         cursor.execute(query, nomes_dos_itens)
@@ -108,10 +92,7 @@ def buscar_detalhes_itens(nomes_dos_itens: list):
         return []
 
 def buscar_detalhes_habilidades(nomes_das_habilidades: list):
-    """
-    Busca no banco de dados os detalhes de uma lista específica de nomes de habilidades.
-    É usado para obter as propriedades (custo, efeito) das habilidades que um personagem conhece.
-    """
+    """Busca no banco de dados os detalhes de uma lista específica de nomes de habilidades."""
     if not nomes_das_habilidades:
         return []
     try:
@@ -147,3 +128,35 @@ def buscar_todos_os_monstros():
         # Em caso de erro, imprime a mensagem e retorna uma lista vazia.
         print(f"Erro ao buscar todos os monstros: {e}")
         return []
+
+# A função abaixo estava indentada incorretamente. Agora está no nível correto.
+def registrar_novo_usuario(nome_usuario, senha_texto_puro):
+    """
+    Cria o hash da senha e insere um novo usuário no banco de dados.
+    Retorna True em caso de sucesso, False em caso de falha (ex: usuário já existe).
+    """
+    try:
+        # Transforma a senha (string) em bytes (padrão utf-8), que é o formato que o bcrypt espera.
+        senha_bytes = senha_texto_puro.encode('utf-8')
+        # Gera o "sal" e cria o hash da senha. O hash é um código irreversível gerado a partir da senha.
+        senha_hash = bcrypt.hashpw(senha_bytes, bcrypt.gensalt())
+
+        conexao = sqlite3.connect(NOME_DB)
+        cursor = conexao.cursor()
+        # Insere o nome de usuário e a SENHA HASHEADA (não a senha original!) na tabela.
+        cursor.execute(
+            "INSERT INTO usuarios (nome_usuario, senha_hash) VALUES (?, ?)",
+            (nome_usuario, senha_hash)
+        )
+        conexao.commit()
+        conexao.close()
+        # Se chegou até aqui, o registro foi bem-sucedido.
+        return True
+    except sqlite3.IntegrityError:
+        # Este erro acontece se o 'nome_usuario' já existir (devido à restrição UNIQUE na tabela).
+        print(f"Tentativa de registrar usuário já existente: {nome_usuario}")
+        return False
+    except Exception as e:
+        # Captura qualquer outro erro que possa acontecer durante o processo.
+        print(f"Erro ao registrar novo usuário: {e}")
+        return False
