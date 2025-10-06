@@ -1,0 +1,55 @@
+/* frontend/src/index.css */
+
+/* Define o estilo base para toda a página */
+body {
+  /* Define a fonte para todo o texto. 'MedievalSharp' será a primeira opção. */
+  font-family: 'MedievalSharp', cursive;
+  /* Cor do texto principal */
+  color: #e0e0e0;
+  /* Cor de fundo da página */
+  background-color: #1a1a1a;
+  /* Remove margens padrão do navegador */
+  margin: 0;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* Estilo para o título principal da página */
+h1 {
+  font-size: 3rem;
+  color: #c59d5f; /* Um tom de dourado/bronze */
+  text-shadow: 2px 2px 4px #000;
+}
+
+/* Estilo para o container que segura a lista de monstros */
+.monster-list {
+  display: flex;
+  flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+  justify-content: center; /* Centraliza as cartas no container */
+  gap: 20px; /* Espaço entre as cartas */
+  margin-top: 40px;
+}
+
+/* Estilo para cada carta de monstro individual */
+.monster-card {
+  background-color: #2a2a2a;
+  border: 2px solid #444;
+  border-radius: 8px;
+  padding: 16px;
+  width: 200px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s; /* Adiciona uma animação suave */
+}
+
+/* Efeito ao passar o mouse sobre a carta */
+.monster-card:hover {
+  transform: scale(1.05); /* Aumenta um pouco o tamanho da carta */
+  border-color: #c59d5f;
+}
+
+/* Estilo para o nome do monstro dentro da carta */
+.monster-card h2 {
+  margin-top: 0;
+  font-size: 1.5rem;
+  color: #e0e0e0;
+}

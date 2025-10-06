@@ -2,11 +2,18 @@
 
 # Importa a biblioteca para interagir com o banco de dados SQLite.
 import sqlite3
+# Importa a biblioteca 'os' para nos ajudar a construir caminhos de arquivo robustos.
+import os
 # Importa a classe 'Monstro' para que possamos criar um objeto Monstro com os dados do DB.
 from core.monstro import Monstro
 
-# Define o caminho para o arquivo do banco de dados, relativo à pasta raiz 'backend'.
-NOME_DB = "database/campanhas.db"
+# --- LÓGICA DE CAMINHO ABSOLUTO E ROBUSTO ---
+# Descobre o caminho absoluto para a pasta onde este script está localizado (a pasta 'database').
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Constrói o caminho para o arquivo do banco de dados, garantindo que ele seja encontrado
+# independentemente de onde o programa que chama este módulo foi executado.
+NOME_DB = os.path.join(script_dir, 'campanhas.db')
+
 
 def buscar_monstro_aleatorio():
     """
@@ -15,7 +22,7 @@ def buscar_monstro_aleatorio():
     """
     # O bloco 'try...except' garante que, se houver um erro de banco de dados, o programa não irá quebrar.
     try:
-        # Estabelece a conexão com o arquivo do banco de dados.
+        # Estabelece a conexão com o arquivo do banco de dados usando o caminho absoluto.
         conexao = sqlite3.connect(NOME_DB)
         # Cria o cursor para executar comandos.
         cursor = conexao.cursor()
@@ -88,7 +95,6 @@ def buscar_detalhes_itens(nomes_dos_itens: list):
         conexao = sqlite3.connect(NOME_DB)
         cursor = conexao.cursor()
         # Prepara os placeholders ('?') para a consulta. Teremos um '?' para cada nome na lista.
-        # Ex: Se a lista for ['Adaga', 'Poção'], placeholders será '?, ?'.
         placeholders = ', '.join('?' for _ in nomes_dos_itens)
         # A cláusula 'WHERE nome IN (...)' é uma forma eficiente de buscar todas as linhas cujo nome está na lista fornecida.
         query = f"SELECT * FROM itens_base WHERE nome IN ({placeholders})"
@@ -106,7 +112,6 @@ def buscar_detalhes_habilidades(nomes_das_habilidades: list):
     Busca no banco de dados os detalhes de uma lista específica de nomes de habilidades.
     É usado para obter as propriedades (custo, efeito) das habilidades que um personagem conhece.
     """
-    # Exatamente a mesma lógica da função de buscar itens, mas aplicada à tabela de habilidades.
     if not nomes_das_habilidades:
         return []
     try:
@@ -123,4 +128,22 @@ def buscar_detalhes_habilidades(nomes_das_habilidades: list):
         return habilidades
     except sqlite3.Error as e:
         print(f"Erro ao buscar detalhes de habilidades: {e}")
+        return []
+
+def buscar_todos_os_monstros():
+    """Busca todos os monstros da tabela 'monstros_base'."""
+    try:
+        conexao = sqlite3.connect(NOME_DB)
+        cursor = conexao.cursor()
+        # Executa a consulta SQL para selecionar todas as colunas de todos os monstros, ordenados por nome.
+        cursor.execute("SELECT * FROM monstros_base ORDER BY nome")
+        # Pega todos os resultados.
+        monstros = cursor.fetchall()
+        # Fecha a conexão.
+        conexao.close()
+        # Retorna a lista de monstros.
+        return monstros
+    except sqlite3.Error as e:
+        # Em caso de erro, imprime a mensagem e retorna uma lista vazia.
+        print(f"Erro ao buscar todos os monstros: {e}")
         return []

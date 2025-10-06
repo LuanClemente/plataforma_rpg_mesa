@@ -1,16 +1,17 @@
 # backend/jogo.py
 
 # --- Importações dos Nossos Módulos ---
+# Cada importação traz uma "ferramenta" de um dos nossos módulos especializados.
 
-# Importa a função para buscar um monstro aleatório no DB. Usada para iniciar o combate.
+# Da pasta 'database', importa a função para buscar um monstro aleatório.
 from database.db_manager import buscar_monstro_aleatorio
-# Importa a função que guia o jogador na criação de um novo personagem.
+# Da pasta 'core', importa a função que guia o jogador na criação de um novo personagem.
 from core.criador_de_personagem import criar_personagem_interativo
-# Importa as funções para salvar e carregar o progresso do personagem em arquivos JSON.
+# Da pasta 'saves', importa as funções para salvar e carregar o progresso do personagem.
 from saves.saves_manager import salvar_personagem, carregar_personagem
-# Importa a função principal que gerencia todo o loop de uma batalha.
+# Da pasta 'core', importa a função principal que gerencia uma batalha.
 from core.combate import iniciar_combate
-# Importa a função que gerencia a experiência do jogador dentro da loja.
+# Da pasta 'core', importa a função que gerencia a experiência do jogador na loja.
 from core.loja import iniciar_loja
 
 # --- Menu Inicial do Jogo ---
@@ -19,16 +20,16 @@ from core.loja import iniciar_loja
 jogador = None
 # Este loop 'while' continua até que um personagem seja criado ou carregado com sucesso.
 while jogador is None:
-    # Imprime o menu inicial para o usuário.
+    # Imprime o menu inicial para o usuário a cada tentativa.
     print("\n" + "="*42)
     print("--- BEM-VINDO À PLATAFORMA RPG DE MESA ---")
     print("="*42)
     print("1. Criar Novo Personagem")
     print("2. Carregar Personagem Existente")
-    # Pede a escolha do usuário e remove espaços em branco.
+    # Pede a escolha do usuário e '.strip()' remove espaços em branco acidentais.
     escolha_inicial = input("> ").strip()
 
-    # Se o jogador escolher criar um novo personagem...
+    # Se o jogador escolher a opção '1'...
     if escolha_inicial == '1':
         # ...chama a função do módulo 'criador_de_personagem', que retorna um objeto Personagem completo.
         jogador = criar_personagem_interativo()
@@ -36,18 +37,18 @@ while jogador is None:
         jogador.ouro = 25
         jogador.adicionar_item("Adaga")
         jogador.adicionar_item("Mapa da região")
-        # Salva o personagem recém-criado imediatamente.
+        # Salva o personagem recém-criado imediatamente para que ele possa ser carregado no futuro.
         salvar_personagem(jogador)
-    # Se o jogador escolher carregar um personagem...
+    # Se o jogador escolher a opção '2'...
     elif escolha_inicial == '2':
         # ...pede o nome do personagem a ser carregado.
         nome = input("Qual o nome do personagem que deseja carregar? ")
         # Chama a função de carregamento. Se o personagem não for encontrado, ela retorna None,
         # e o loop 'while jogador is None' continuará, mostrando o menu novamente.
         jogador = carregar_personagem(nome)
-    # Se a escolha for inválida...
+    # Se a escolha for qualquer outra coisa...
     else:
-        # ...informa o usuário.
+        # ...informa ao usuário que a opção é inválida.
         print("Opção inválida.")
 
 # --- Loop Principal do Jogo ---
@@ -74,7 +75,7 @@ while True:
         # Chama o db_manager para buscar um monstro aleatório da biblioteca.
         monstro_encontrado = buscar_monstro_aleatorio()
         
-        # Se um monstro for encontrado...
+        # Se um monstro for encontrado (a biblioteca não está vazia)...
         if monstro_encontrado:
             # ...chama o módulo de combate, passando o jogador e o monstro como participantes.
             vitoria = iniciar_combate(jogador, monstro_encontrado)
@@ -85,7 +86,7 @@ while True:
             else:
                 print("Você precisa descansar para recuperar suas forças...")
             
-            # Após o combate, o estado do jogador (vida, xp, ouro) mudou, então salvamos o progresso.
+            # Após o combate, o estado do jogador (vida, xp, ouro) pode ter mudado, então salvamos o progresso.
             salvar_personagem(jogador)
         else:
             # Se a biblioteca de monstros estiver vazia, informa ao jogador.
