@@ -27,6 +27,9 @@ def adicionar_monstro():
         xp_oferecido = int(input("XP Oferecido: "))
         ouro_drop = int(input("Ouro Descoberto: "))
         
+        # O bloco 'with' gerencia a conexão automaticamente. Ele abre a conexão
+        # e garante que ela seja fechada no final, mesmo se ocorrerem erros.
+        # Ele também faz o 'commit' automaticamente se o bloco for concluído com sucesso.
         with sqlite3.connect(NOME_DB) as conexao:
             cursor = conexao.cursor()
             cursor.execute(
@@ -38,6 +41,9 @@ def adicionar_monstro():
         print("\nErro: Por favor, insira um número válido para os atributos numéricos.")
     except sqlite3.IntegrityError:
         print(f"\nErro: Já existe um monstro com o nome '{nome}' na biblioteca.")
+    except sqlite3.Error as e:
+        # Captura qualquer outro erro genérico do banco de dados.
+        print(f"\nOcorreu um erro no banco de dados: {e}")
 
 def listar_monstros():
     """Consulta e exibe todos os monstros da tabela 'monstros_base'."""
@@ -49,7 +55,7 @@ def listar_monstros():
             monstros = cursor.fetchall()
     except sqlite3.Error as e:
         print(f"Erro ao conectar ao banco de dados: {e}")
-        return
+        return # Sai da função se houver erro de conexão
 
     if not monstros:
         print("A biblioteca de monstros está vazia.")
@@ -90,6 +96,8 @@ def adicionar_item():
         print("\nErro: Por favor, insira um número válido para preço ou bônus de ataque.")
     except sqlite3.IntegrityError:
         print(f"\nErro: Já existe um item com o nome '{nome}' na biblioteca.")
+    except sqlite3.Error as e:
+        print(f"\nOcorreu um erro no banco de dados: {e}")
 
 def listar_itens():
     """Consulta e exibe todos os itens da tabela 'itens_base'."""
@@ -134,6 +142,8 @@ def adicionar_habilidade():
         print("\nErro: Custo de Mana deve ser um número.")
     except sqlite3.IntegrityError:
         print(f"\nErro: Já existe uma habilidade com o nome '{nome}'.")
+    except sqlite3.Error as e:
+        print(f"\nOcorreu um erro no banco de dados: {e}")
 
 def listar_habilidades():
     """Consulta e exibe todas as habilidades da tabela 'habilidades_base'."""
@@ -156,8 +166,8 @@ def listar_habilidades():
             id, nome, _, efeito, custo = hab
             print(f"{id:<4} {nome:<25} {custo:<12} {efeito:<20}")
 
-# --- NOVA FUNÇÃO DE GERENCIAMENTO DE USUÁRIOS ---
-# Esta função foi movida para fora do 'while' loop, para o lugar correto.
+# --- Função de Gerenciamento de Usuários ---
+
 def listar_usuarios():
     """Consulta e exibe todos os usuários registrados no banco de dados."""
     print("\n--- Lista de Usuários Registrados ---")
@@ -178,8 +188,10 @@ def listar_usuarios():
     except Exception as e:
         print(f"Ocorreu um erro ao listar usuários: {e}")
 
+# --- Loop Principal do Editor do Mestre (VERSÃO CORRIGIDA) ---
+# mestre/editor_mestre.py
 
-# --- Loop Principal do Editor do Mestre ---
+# --- Loop Principal do Editor do Mestre (COM LOGS DE DEPURAÇÃO) ---
 while True:
     print("\n" + "="*35)
     print("--- PAINEL DE CONTROLE DO MESTRE ---")
@@ -193,12 +205,19 @@ while True:
     print("\n-- Gerenciar Habilidades --")
     print("5. Adicionar Habilidade")
     print("6. Listar Habilidades")
-    # --- NOVA SEÇÃO NO MENU ---
     print("\n-- Gerenciar Usuários --")
     print("7. Listar Usuários")
     print("\nDigite 'sair' para fechar.")
     
     escolha = input("> ").strip()
+
+    # --- NOSSOS ESPIÕES (LOGS) ---
+    print("\n--- INÍCIO DO LOG DE DEPURAÇÃO ---")
+    print(f"DEBUG: O valor da variável 'escolha' é: '{escolha}'")
+    print(f"DEBUG: O tipo da variável 'escolha' é: {type(escolha)}")
+    print(f"DEBUG: Comparando '{escolha}' == '7'. O resultado é: {escolha == '7'}")
+    print("--- FIM DO LOG DE DEPURAÇÃO ---\n")
+    # --------------------------------
 
     if escolha == '1':
         adicionar_monstro()
@@ -212,11 +231,14 @@ while True:
         adicionar_habilidade()
     elif escolha == '6':
         listar_habilidades()
-    # --- NOVA OPÇÃO NO MENU ---
     elif escolha == '7':
+        # Adicionamos um log aqui também para confirmar que o bloco foi executado
+        print("DEBUG: Entrou no bloco 'elif escolha == '7''. Chamando listar_usuarios()...")
         listar_usuarios()
     elif escolha.lower() == 'sair':
         print("Fechando o painel do Mestre...")
         break
     else:
+        # E um log aqui para sabermos se ele caiu no 'else'
+        print("DEBUG: A escolha não correspondeu a nenhum 'if' ou 'elif'. Entrou no bloco 'else'.")
         print("Opção inválida.")
