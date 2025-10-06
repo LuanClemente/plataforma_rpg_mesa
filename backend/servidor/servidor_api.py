@@ -1,90 +1,92 @@
-# backend/servidor/servidor_api.py
+# servidor/servidor_api.py
 
-# Importa a classe Flask para criar nosso servidor e 'jsonify' para formatar nossa resposta em JSON.
+# Importa as classes 'Flask' (para criar o servidor) e 'jsonify' (para formatar nossas respostas em JSON) da biblioteca Flask.
 from flask import Flask, jsonify
-# Importa a biblioteca para interagir com o banco de dados.
-import sqlite3
+# Importa as funções que já criamos para buscar informações no nosso banco de dados.
+# Graças à nossa estrutura e à execução com '-m', o Python sabe onde encontrar o pacote 'database'.
+from database.db_manager import buscar_todos_os_itens, buscar_detalhes_habilidades
 
-# --- Caminho do Banco de Dados ---
-# Como vamos executar o comando a partir da pasta 'backend', o caminho para o DB continua sendo este.
-# O Python usará a pasta 'backend' como ponto de partida para encontrar 'database/campanhas.db'.
-NOME_DB = "database/campanhas.db"
+# Precisamos adicionar a função para buscar monstros ao db_manager ou recriá-la aqui. Vamos adicioná-la ao db_manager para manter o padrão.
+# (Supondo que adicionamos 'buscar_todos_os_monstros' ao db_manager de forma similar a 'buscar_todos_os_itens')
+# Por enquanto, vamos importar uma função hipotética que faremos a seguir.
+from database.db_manager import buscar_todos_os_itens # Vamos usar esta como base
 
-# Cria uma instância da aplicação Flask. '__name__' é uma variável especial do Python que ajuda o Flask a se localizar.
+# --- Criação do Servidor ---
+
+# Cria uma instância da aplicação Flask. A variável '__name__' ajuda o Flask a se localizar no projeto.
 app = Flask(__name__)
 
-# --- Funções Auxiliares para o Banco de Dados ---
-# Para manter este arquivo limpo, estamos recriando a função aqui, mas o ideal
-# seria importar do db_manager. Com o '-m', o import original 'from database.db_manager...' funcionaria!
-# Vamos usar o import correto para seguir as boas práticas.
-from database.db_manager import buscar_todos_os_itens # Importando corretamente
+# --- Definição dos Endpoints da API (as "rotas" ou "URLs") ---
 
-def buscar_todos_os_monstros():
-    """Função para buscar todos os monstros (exemplo para a API)."""
-    try:
-        # Conecta ao banco de dados usando o caminho definido.
-        conexao = sqlite3.connect(NOME_DB)
-        # Cria um cursor.
-        cursor = conexao.cursor()
-        # Executa a consulta SQL para selecionar alguns campos de todos os monstros.
-        cursor.execute("SELECT nome, vida_maxima, defesa, xp_oferecido FROM monstros_base ORDER BY nome")
-        # Pega todos os resultados.
-        monstros_db = cursor.fetchall()
-        # Fecha a conexão.
-        conexao.close()
-        
-        # Cria uma lista vazia para armazenar os monstros formatados.
-        lista_de_monstros = []
-        # Itera sobre cada tupla de monstro retornada pelo banco de dados.
-        for monstro_tupla in monstros_db:
-            # Converte a tupla em um dicionário, que é um formato mais amigável para JSON.
-            lista_de_monstros.append({
-                "nome": monstro_tupla[0],
-                "vida": monstro_tupla[1],
-                "defesa": monstro_tupla[2],
-                "xp": monstro_tupla[3]
-            })
-        # Retorna a lista de dicionários.
-        return lista_de_monstros
-    except Exception as e:
-        # Em caso de erro, imprime o erro e retorna uma lista vazia.
-        print(f"Erro ao buscar monstros: {e}")
-        return []
-
-# --- Definição dos Endpoints da API ---
-
-# O decorator '@app.route(...)' define uma URL para a nossa API.
-# 'methods=['GET']' especifica que esta URL responde a requisições do tipo GET (buscar dados).
+# O decorator '@app.route(...)' associa uma URL a uma função Python.
+# Quando um navegador ou frontend acessa "/api/monstros", a função 'get_monstros' é executada.
+# 'methods=['GET']' especifica que esta rota responde a requisições de busca de dados (GET).
 @app.route("/api/monstros", methods=['GET'])
 def get_monstros():
-    """Endpoint que retorna a lista de todos os monstros em formato JSON."""
-    # Chama nossa função auxiliar para buscar os dados no DB.
-    monstros = buscar_todos_os_monstros()
-    # 'jsonify' pega a nossa lista Python e a converte para o formato JSON, que o frontend entenderá.
-    return jsonify(monstros)
+    """
+    Este endpoint busca todos os monstros do banco de dados e os retorna como JSON.
+    """
+    # (Para este exemplo funcionar, precisamos adicionar a função buscar_todos_os_monstros ao db_manager.py)
+    # Por enquanto, vamos escrever a lógica aqui para ser claro.
+    import sqlite3
+    # O caminho precisa ser relativo à raiz do backend, de onde o servidor é executado.
+    conexao = sqlite3.connect("database/campanhas.db")
+    cursor = conexao.cursor()
+    # Seleciona apenas os campos que o frontend pode precisar, para não expor dados a mais.
+    cursor.execute("SELECT nome, vida_maxima, defesa, xp_oferecido FROM monstros_base ORDER BY nome")
+    # Pega todos os resultados.
+    monstros_db = cursor.fetchall()
+    conexao.close()
+    
+    # Converte a lista de tuplas do banco de dados em uma lista de dicionários.
+    # Dicionários são mais fáceis de ler e usar no frontend ("chave": "valor").
+    lista_de_monstros = []
+    # Itera sobre cada monstro retornado pelo banco de dados.
+    for monstro_tupla in monstros_db:
+        # Cria um dicionário para cada monstro com chaves claras.
+        lista_de_monstros.append({
+            "nome": monstro_tupla[0],
+            "vida": monstro_tupla[1],
+            "defesa": monstro_tupla[2],
+            "xp": monstro_tupla[3]
+        })
+
+    # 'jsonify' é a função do Flask que converte nossa lista de dicionários Python
+    # para o formato JSON padrão da web, preparando a resposta para o frontend.
+    return jsonify(lista_de_monstros)
 
 @app.route("/api/itens", methods=['GET'])
 def get_itens():
-    """Endpoint que retorna a lista de todos os itens em formato JSON."""
-    # Reutiliza a função que já existe no nosso db_manager!
+    """
+    Este endpoint busca todos os itens do banco de dados e os retorna como JSON.
+    """
+    # Reutiliza a função que já criamos e testamos no nosso db_manager!
     itens_db = buscar_todos_os_itens()
+    # Cria uma lista vazia para a nossa resposta formatada.
     lista_de_itens = []
-    # Itera sobre os itens do DB para formatá-los.
+    # Itera sobre cada tupla de item retornada pelo banco de dados.
     for item_tupla in itens_db:
+        # Converte a tupla em um dicionário com chaves descritivas.
         lista_de_itens.append({
+            "id": item_tupla[0],
             "nome": item_tupla[1],
             "tipo": item_tupla[2],
             "descricao": item_tupla[3],
-            "preco": item_tupla[4]
+            "preco": item_tupla[4],
+            "dano": item_tupla[5],
+            "bonus_ataque": item_tupla[6],
+            "efeito": item_tupla[7]
         })
-    # Retorna a lista de itens formatada como JSON.
+    # Converte a lista de dicionários de itens para JSON e a envia como resposta.
     return jsonify(lista_de_itens)
 
 # --- Bloco para Iniciar o Servidor ---
 
-# Este código só executa se o script for chamado diretamente (não se for importado).
+# Este código só executa se o script for chamado diretamente (python -m servidor.servidor_api)
 if __name__ == "__main__":
-    # O comando 'app.run()' inicia o servidor Flask.
-    # 'debug=True' ativa o modo de depuração, que reinicia o servidor automaticamente
-    # a cada alteração no código e mostra erros detalhados no navegador.
-    app.run(debug=True, port=5001) # Usando a porta 5001 para evitar conflitos
+    # O comando 'app.run()' inicia o servidor de desenvolvimento do Flask.
+    # 'debug=True' é uma ferramenta poderosa para desenvolvimento:
+    # 1. Reinicia o servidor automaticamente a cada alteração no código.
+    # 2. Mostra erros detalhados diretamente no navegador, facilitando a depuração.
+    # 'port=5001' define a porta de rede em que o servidor irá "ouvir" por pedidos.
+    app.run(debug=True, port=5001)

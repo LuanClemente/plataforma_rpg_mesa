@@ -1,65 +1,84 @@
-# Importamos a nossa classe Personagem, pois vamos criar um objeto dela.
+# core/criador_de_personagem.py
+
+# Importa a classe 'Personagem' do módulo vizinho 'personagem.py' (dentro do mesmo pacote 'core').
+# O '.' no início indica que a importação é relativa ao pacote atual.
 from .personagem import Personagem
 
 def criar_personagem_interativo():
     """
-    Guia o usuário através do processo de criação de personagem
-    e retorna o objeto Personagem criado.
+    Guia o usuário através de um processo interativo de criação de personagem no console,
+    incluindo a distribuição de pontos de atributo.
+    Ao final, retorna o objeto Personagem recém-criado.
     """
-    print("\n--- CRIAÇÃO DE PERSONAGEM ---")
+    # Imprime um cabeçalho para indicar o início do processo de criação.
+    print("\n" + "="*29)
+    print("--- CRIAÇÃO DE PERSONAGEM ---")
+    print("="*29)
     
-    # Pede ao usuário para inserir o nome e a classe.
-    nome = input("Qual o nome do seu herói? ")
-    classe = input(f"Qual a classe de {nome}? (Ex: Guerreiro, Mago, Ladino) ")
+    # Pede ao usuário para inserir o nome e a classe do seu herói.
+    # A função input() pausa o programa e espera o usuário digitar e pressionar Enter.
+    # .strip() remove espaços em branco acidentais do início e do fim.
+    nome = input("Qual o nome do seu herói? ").strip()
+    classe = input(f"Qual a classe de {nome}? (Ex: Guerreiro, Mago, Ladino) ").strip()
     
-    # Cria uma instância inicial do personagem com nível 1.
-    # Os atributos ainda estão com o valor padrão de 10.
+    # Cria uma instância inicial do personagem com nível 1 e os dados fornecidos.
+    # Neste ponto, os atributos (Força, Destreza, etc.) ainda estão com o valor padrão de 10.
     novo_personagem = Personagem(nome=nome, classe=classe, nivel=1)
     
-    # --- Distribuição de Pontos ---
-    pontos_para_distribuir = 6  # Exemplo: 6 pontos para distribuir
+    # --- Seção de Distribuição de Pontos de Atributo ---
+    
+    # Define uma quantidade de pontos bônus que o jogador pode distribuir.
+    pontos_para_distribuir = 6
+    # Pega a lista de nomes dos atributos (['Força', 'Destreza', ...]) do dicionário do personagem.
     atributos_disponiveis = list(novo_personagem.atributos.keys())
     
+    # Imprime as instruções para o jogador.
     print("\n--- Distribua seus Pontos de Atributo ---")
-    print(f"Você tem {pontos_para_distribuir} pontos para adicionar aos seus atributos.")
-    print("Cada atributo começa com o valor base 10.")
+    print(f"Você tem {pontos_para_distribuir} pontos para adicionar aos seus atributos (base 10).")
     
-    # Loop para distribuir os pontos.
+    # O loop 'while' continua enquanto o jogador ainda tiver pontos para gastar.
     while pontos_para_distribuir > 0:
-        print("\nAtributos atuais:")
-        novo_personagem.mostrar_ficha() # Mostra a ficha para o usuário ver os valores
+        # Mostra a ficha atual do personagem para que o jogador veja o estado dos atributos.
+        novo_personagem.mostrar_ficha()
         
-        print("\nEm qual atributo você quer adicionar um ponto?")
-        # Mostra os atributos numerados para facilitar a escolha.
+        # Informa quantos pontos ainda restam.
+        print(f"\nPontos restantes: {pontos_para_distribuir}")
+        print("Em qual atributo você quer adicionar um ponto?")
+        
+        # A função 'enumerate' nos dá o índice (i) e o valor (attr) ao mesmo tempo.
+        # Usamos isso para criar um menu numerado de atributos para o jogador escolher.
         for i, attr in enumerate(atributos_disponiveis):
+            # Imprime, por exemplo, "1. Força".
             print(f"{i + 1}. {attr}")
 
+        # O bloco 'try...except' lida com a possibilidade de o jogador digitar um texto em vez de um número.
         try:
-            # Pede ao usuário para escolher um número.
-            escolha = int(input("> ")) - 1 # Subtrai 1 para corresponder ao índice da lista
+            # Pede ao jogador para escolher um número.
+            escolha = int(input("> ")) - 1 # Subtrai 1 para o número do menu (começa em 1) corresponder ao índice da lista (começa em 0).
             
-            # Verifica se a escolha é válida.
+            # Verifica se o número escolhido está dentro do intervalo válido de índices da lista.
             if 0 <= escolha < len(atributos_disponiveis):
-                # Pega o nome do atributo escolhido.
+                # Pega o nome do atributo correspondente ao número escolhido.
                 atributo_escolhido = atributos_disponiveis[escolha]
                 
-                # Aumenta o valor do atributo no dicionário do personagem.
+                # Aumenta o valor do atributo escolhido no dicionário do personagem.
                 novo_personagem.atributos[atributo_escolhido] += 1
                 
-                # Diminui os pontos restantes.
+                # Diminui a quantidade de pontos que ainda podem ser distribuídos.
                 pontos_para_distribuir -= 1
-                print(f"Você adicionou um ponto em {atributo_escolhido}. Restam {pontos_para_distribuir} pontos.")
+                # Informa ao jogador a ação que foi realizada.
+                print(f"Você adicionou um ponto em {atributo_escolhido}.")
             else:
+                # Informa ao jogador se o número digitado for inválido (ex: 7 ou -1).
                 print("Escolha inválida. Por favor, digite um número da lista.")
         except ValueError:
+            # Informa ao jogador se ele digitou algo que não pode ser convertido em número.
             print("Entrada inválida. Por favor, digite um número.")
             
+    # Mensagem final após a distribuição de todos os pontos.
     print("\n--- Personagem Criado com Sucesso! ---")
+    # Mostra a ficha finalizada para o jogador.
     novo_personagem.mostrar_ficha()
     
-    # Retorna o objeto personagem totalmente configurado.
+    # Retorna o objeto 'Personagem' completo e customizado, pronto para ser usado no jogo principal.
     return novo_personagem
-
-# Bloco de teste (opcional, mas bom para testar o arquivo isoladamente)
-if __name__ == '__main__':
-    criar_personagem_interativo()
