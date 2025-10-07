@@ -1,49 +1,64 @@
 // frontend/src/pages/LoginPage.jsx
 
-// Importa a ferramenta 'useState' do React para gerenciar o estado dos campos do formulário.
+// Importamos o 'useState' para controlar os campos do formulário.
 import { useState } from 'react';
-// Importa o componente 'Link' do React Router para criar links de navegação.
+// Importamos o 'Link' para o link de "Criar conta". O useNavigate não é mais necessário aqui.
 import { Link } from 'react-router-dom';
+// 1. Importamos nosso hook 'useAuth', que nos dá acesso ao "Quadro de Avisos" (nosso AuthContext).
+import { useAuth } from '../context/AuthContext';
 
 // Define o componente da página de Login.
 function LoginPage() {
-  // Cria uma "caixa" (estado) chamada 'username' para guardar o valor do campo de usuário.
-  // 'setUsername' é a função que usamos para atualizar esse valor.
+  // Estados para guardar os valores dos campos do formulário (sem alterações).
   const [username, setUsername] = useState('');
-  // Cria outra "caixa" (estado) para guardar o valor do campo de senha.
   const [password, setPassword] = useState('');
+  // Estado para guardar mensagens de erro ou sucesso para o usuário.
+  const [message, setMessage] = useState('');
+  
+  // 2. Usamos nosso hook para pegar a função 'login' que está centralizada no AuthContext.
+  // Não precisamos mais do 'navigate' aqui, pois o próprio AuthContext cuidará do redirecionamento.
+  const { login } = useAuth();
 
-  // Esta função será chamada quando o jogador clicar no botão "Entrar".
-  const handleSubmit = (event) => {
-    // 'event.preventDefault()' impede que a página recarregue, que é o comportamento
-    // padrão de um formulário HTML, permitindo que nosso código React controle a ação.
+  // Esta é a nova função 'handleSubmit', agora muito mais simples.
+  const handleSubmit = async (event) => {
+    // Impede o recarregamento padrão da página.
     event.preventDefault(); 
-    
-    // Por enquanto, como o login ainda não foi implementado no backend,
-    // vamos apenas mostrar os dados no console do navegador (F12) e um alerta.
-    console.log("Tentativa de login com:");
-    console.log("Usuário:", username);
-    console.log("Senha:", password);
-    alert(`A lógica de login para o usuário ${username} ainda será implementada!`);
+    // Limpa mensagens de erro antigas.
+    setMessage('');
+
+    try {
+      // 3. Simplesmente chamamos a função 'login' do nosso contexto, passando o usuário e a senha.
+      // A função 'login' no AuthContext agora é responsável por fazer o fetch,
+      // atualizar o estado global do usuário e redirecionar a página.
+      const response = await login(username, password);
+      
+      // Se a resposta do login (que vem do AuthContext) indicar falha...
+      if (!response.sucesso) {
+        // ...mostramos a mensagem de erro que ela nos retornou.
+        setMessage(response.mensagem);
+      }
+      // Não precisamos mais do 'else' ou do 'setTimeout', pois o AuthContext já cuida do sucesso.
+
+    } catch (error) {
+      // O catch ainda é útil para erros inesperados.
+      setMessage("Ocorreu um erro inesperado.");
+      console.error("Erro no handleSubmit do Login:", error);
+    }
   };
 
-  // O 'return' define o que o componente vai renderizar na tela em JSX.
+  // O JSX do formulário (a parte visual) permanece exatamente o mesmo.
   return (
-    // Reutilizamos a classe 'login-container' que já estilizamos no nosso CSS.
     <div className="login-container">
       <h1>Acesso à Fortaleza</h1>
-      {/* O evento 'onSubmit' do formulário chama nossa função 'handleSubmit' quando o botão do tipo 'submit' é clicado. */}
       <form onSubmit={handleSubmit} className="login-form">
         <div className="form-group">
           <label htmlFor="username">Nome de Usuário</label>
-          {/* Este é um "componente controlado". O valor do input é sempre o que está no nosso estado 'username'. */}
           <input 
             type="text" 
             id="username" 
             value={username}
-            // O evento 'onChange' é disparado toda vez que o usuário digita algo.
-            // 'e.target.value' contém o texto atual do campo, que usamos para atualizar nosso estado com 'setUsername'.
             onChange={(e) => setUsername(e.target.value)} 
+            required
           />
         </div>
         <div className="form-group">
@@ -53,18 +68,19 @@ function LoginPage() {
             id="password" 
             value={password}
             onChange={(e) => setPassword(e.target.value)} 
+            required
           />
         </div>
         <button type="submit" className="login-button">Entrar</button>
       </form>
 
-      {/* --- CÓDIGO ADICIONADO --- */}
-      {/* Esta seção cria o link para a página de cadastro. */}
+      {/* Exibe a mensagem de feedback (erro ou sucesso) para o usuário */}
+      {message && <p className="feedback-message">{message}</p>}
+
+      {/* Link para a página de cadastro */}
       <div className="register-link">
         <p>
           Não tem uma conta? 
-          {/* O componente <Link> do React Router cria um link que navega para a rota especificada em 'to' */}
-          {/* sem recarregar a página, proporcionando uma experiência de SPA (Single-Page Application). */}
           <Link to="/registrar"> Crie uma agora!</Link>
         </p>
       </div>
@@ -72,5 +88,5 @@ function LoginPage() {
   );
 }
 
-// Exporta o componente para que ele possa ser usado pelo App.jsx.
+// Exporta o componente para ser usado pelo App.jsx.
 export default LoginPage;

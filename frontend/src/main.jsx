@@ -3,23 +3,27 @@
 // Importa as bibliotecas principais do React.
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// 1. Importamos o BrowserRouter, o "mapa" principal do nosso sistema de rotas.
+// Importa o BrowserRouter para gerenciar as rotas da aplicação.
 import { BrowserRouter } from 'react-router-dom';
-
-// Importa nosso componente App, que agora contém as definições de rotas.
+// Importa nosso AuthProvider, o gerenciador do estado de autenticação.
+import { AuthProvider } from './context/AuthContext';
+// Importa nosso componente principal App.
 import App from './App.jsx';
-// Importa nosso arquivo de estilo principal.
+// Importa a folha de estilos global.
 import './index.css';
 
-// Encontra a "tela de pintura" no nosso index.html e prepara a raiz do React.
+// Encontra o elemento 'root' no index.html e inicia a aplicação React nele.
 ReactDOM.createRoot(document.getElementById('root')).render(
-  // React.StrictMode é uma ferramenta que ajuda a encontrar problemas potenciais na sua aplicação.
+  // React.StrictMode ajuda a detectar problemas potenciais no código.
   <React.StrictMode>
-    {/* 2. Envelopamos nosso componente <App /> com o <BrowserRouter>. */}
-    {/* A partir de agora, todos os componentes dentro de App (HomePage, LoginPage, etc.) */}
-    {/* terão acesso às funcionalidades de roteamento. */}
+    {/* O BrowserRouter deve ser um dos 'envelopes' mais externos, para gerenciar todas as URLs. */}
     <BrowserRouter>
-      <App />
+      {/* O AuthProvider deve 'envelopar' o App. */}
+      {/* Isso garante que CADA componente dentro de App (LoginPage, HomePage, etc.) */}
+      {/* possa usar o hook 'useAuth()' para saber quem está logado, fazer login ou logout. */}
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

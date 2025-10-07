@@ -10,28 +10,30 @@ import { Routes, Route, Link } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-
+import ProtectedRoute from './components/ProtectedRoute';
 
 // Esta é a nova função do nosso componente App.
 function App() {
   return (
     <div className="app-container">
-      <nav className="main-nav">
-        {/* Adicionaremos um link para a página de registro na LoginPage */}
-        <Link to="/">Login</Link>
-        <Link to="/home">Bestiário</Link>
-      </nav>
-
+      {/* ... (código da <nav>) ... */}
       <main>
         <Routes>
           <Route path="/" element={<LoginPage />} />
-          <Route path="/home" element={<HomePage />} />
-          {/* 2. Adicione a nova rota para o cadastro! */}
           <Route path="/registrar" element={<RegisterPage />} />
+          
+          {/* ROTA ATUALIZADA */}
+          <Route 
+            path="/home" 
+            element={
+              <ProtectedRoute>
+                <HomePage />
+              </ProtectedRoute>
+            } 
+          />
         </Routes>
       </main>
     </div>
   );
 }
-
 export default App;
