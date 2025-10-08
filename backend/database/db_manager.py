@@ -1,41 +1,35 @@
 # database/db_manager.py
 
-# Importa a biblioteca para interagir com o banco de dados SQLite.
+# Importa as bibliotecas necessárias.
 import sqlite3
-# Importa a biblioteca 'os' para nos ajudar a construir caminhos de arquivo robustos.
 import os
-# Importa a classe 'Monstro' para que possamos criar um objeto Monstro com os dados do DB.
 from core.monstro import Monstro
-# Importa a biblioteca 'bcrypt' para lidar com a segurança das senhas.
 import bcrypt
+import json
 
 # --- LÓGICA DE CAMINHO ABSOLUTO E ROBUSTO ---
-# Descobre o caminho absoluto para a pasta onde este script está localizado (a pasta 'database').
+# Garante que o caminho para o banco de dados seja sempre encontrado corretamente.
 script_dir = os.path.dirname(os.path.abspath(__file__))
-# Constrói o caminho para o arquivo do banco de dados, garantindo que ele seja encontrado
-# independentemente de onde o programa que chama este módulo foi executado.
 NOME_DB = os.path.join(script_dir, 'campanhas.db')
 
 
 def buscar_monstro_aleatorio():
-    """
-    Conecta ao banco de dados, busca um monstro aleatório da tabela 'monstros_base'
-    e retorna um objeto Monstro totalmente instanciado.
-    """
+    """Conecta ao DB, busca um monstro aleatório e retorna um objeto Monstro."""
     try:
-        conexao = sqlite3.connect(NOME_DB)
-        cursor = conexao.cursor()
-        cursor.execute("SELECT * FROM monstros_base ORDER BY RANDOM() LIMIT 1")
-        dados_monstro = cursor.fetchone()
-        conexao.close()
+        # O 'with' gerencia a conexão, garantindo que ela seja fechada no final.
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            cursor.execute("SELECT * FROM monstros_base ORDER BY RANDOM() LIMIT 1")
+            dados_monstro = cursor.fetchone()
+        
         if dados_monstro:
-            monstro_encontrado = Monstro(
+            # Cria a instância do objeto Monstro com os dados da tupla do DB.
+            return Monstro(
                 nome=dados_monstro[1], vida_maxima=dados_monstro[2],
                 ataque_bonus=dados_monstro[3], dano_dado=dados_monstro[4],
                 defesa=dados_monstro[5], xp_oferecido=dados_monstro[6],
                 ouro_drop=dados_monstro[7]
             )
-            return monstro_encontrado
         else:
             return None
     except sqlite3.Error as e:
@@ -43,48 +37,42 @@ def buscar_monstro_aleatorio():
         return None
 
 def buscar_todos_os_itens():
-    """Busca todos os itens da tabela 'itens_base' para serem usados na loja."""
+    """Busca todos os itens da tabela 'itens_base'."""
     try:
-        conexao = sqlite3.connect(NOME_DB)
-        cursor = conexao.cursor()
-        cursor.execute("SELECT * FROM itens_base ORDER BY preco_ouro")
-        itens = cursor.fetchall()
-        conexao.close()
-        return itens
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            cursor.execute("SELECT * FROM itens_base ORDER BY preco_ouro")
+            return cursor.fetchall()
     except sqlite3.Error as e:
         print(f"Erro ao buscar itens no banco de dados: {e}")
         return []
 
 def buscar_detalhes_itens(nomes_dos_itens: list):
-    """Busca no banco de dados os detalhes de uma lista específica de nomes de itens."""
+    """Busca os detalhes de uma lista específica de nomes de itens."""
     if not nomes_dos_itens:
         return []
     try:
-        conexao = sqlite3.connect(NOME_DB)
-        cursor = conexao.cursor()
-        placeholders = ', '.join('?' for _ in nomes_dos_itens)
-        query = f"SELECT * FROM itens_base WHERE nome IN ({placeholders})"
-        cursor.execute(query, nomes_dos_itens)
-        itens = cursor.fetchall()
-        conexao.close()
-        return itens
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            placeholders = ', '.join('?' for _ in nomes_dos_itens)
+            query = f"SELECT * FROM itens_base WHERE nome IN ({placeholders})"
+            cursor.execute(query, nomes_dos_itens)
+            return cursor.fetchall()
     except sqlite3.Error as e:
         print(f"Erro ao buscar detalhes de itens: {e}")
         return []
 
 def buscar_detalhes_habilidades(nomes_das_habilidades: list):
-    """Busca no banco de dados os detalhes de uma lista específica de nomes de habilidades."""
+    """Busca os detalhes de uma lista específica de nomes de habilidades."""
     if not nomes_das_habilidades:
         return []
     try:
-        conexao = sqlite3.connect(NOME_DB)
-        cursor = conexao.cursor()
-        placeholders = ', '.join('?' for _ in nomes_das_habilidades)
-        query = f"SELECT * FROM habilidades_base WHERE nome IN ({placeholders})"
-        cursor.execute(query, nomes_das_habilidades)
-        habilidades = cursor.fetchall()
-        conexao.close()
-        return habilidades
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            placeholders = ', '.join('?' for _ in nomes_das_habilidades)
+            query = f"SELECT * FROM habilidades_base WHERE nome IN ({placeholders})"
+            cursor.execute(query, nomes_das_habilidades)
+            return cursor.fetchall()
     except sqlite3.Error as e:
         print(f"Erro ao buscar detalhes de habilidades: {e}")
         return []
@@ -92,83 +80,103 @@ def buscar_detalhes_habilidades(nomes_das_habilidades: list):
 def buscar_todos_os_monstros():
     """Busca todos os monstros da tabela 'monstros_base'."""
     try:
-        conexao = sqlite3.connect(NOME_DB)
-        cursor = conexao.cursor()
-        cursor.execute("SELECT * FROM monstros_base ORDER BY nome")
-        monstros = cursor.fetchall()
-        conexao.close()
-        return monstros
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            cursor.execute("SELECT * FROM monstros_base ORDER BY nome")
+            return cursor.fetchall()
     except sqlite3.Error as e:
         print(f"Erro ao buscar todos os monstros: {e}")
         return []
 
 def registrar_novo_usuario(nome_usuario, senha_texto_puro):
-    """
-    Cria o hash da senha e insere um novo usuário no banco de dados.
-    Retorna True em caso de sucesso, False em caso de falha (ex: usuário já existe).
-    """
+    """Cria o hash da senha e insere um novo usuário no banco de dados."""
     try:
-        # Transforma a senha (string) em bytes (padrão utf-8), que é o formato que o bcrypt espera.
         senha_bytes = senha_texto_puro.encode('utf-8')
-        # Gera o "sal" e cria o hash da senha. O hash é um código irreversível gerado a partir da senha.
         senha_hash = bcrypt.hashpw(senha_bytes, bcrypt.gensalt())
-
-        conexao = sqlite3.connect(NOME_DB)
-        cursor = conexao.cursor()
-        # Insere o nome de usuário e a SENHA HASHEADA (não a senha original!) na tabela.
-        cursor.execute(
-            "INSERT INTO usuarios (nome_usuario, senha_hash) VALUES (?, ?)",
-            (nome_usuario, senha_hash)
-        )
-        conexao.commit()
-        conexao.close()
-        # Se chegou até aqui, o registro foi bem-sucedido.
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            cursor.execute(
+                "INSERT INTO usuarios (nome_usuario, senha_hash) VALUES (?, ?)",
+                (nome_usuario, senha_hash)
+            )
         return True
     except sqlite3.IntegrityError:
-        # Este erro acontece se o 'nome_usuario' já existir (devido à restrição UNIQUE na tabela).
         return False
     except Exception as e:
-        # Captura qualquer outro erro que possa acontecer durante o processo.
         print(f"Erro ao registrar novo usuário: {e}")
         return False
 
-# --- FUNÇÃO CORRIGIDA ---
-# A indentação desta função foi corrigida. Ela agora está no nível principal do arquivo.
+
+def criar_nova_ficha(usuario_id, nome_personagem, classe, atributos):
+    """Insere uma nova ficha de personagem no banco de dados, associada a um usuário."""
+    try:
+        # Convertemos o dicionário de atributos para uma string no formato JSON.
+        # É assim que guardamos dados complexos (como dicionários) em um campo de texto no DB.
+        atributos_str_json = json.dumps(atributos)
+
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            cursor.execute(
+                "INSERT INTO fichas_personagem (usuario_id, nome_personagem, classe, nivel, atributos_json) VALUES (?, ?, ?, ?, ?)",
+                (usuario_id, nome_personagem, classe, 1, atributos_str_json) # Começa no nível 1
+            )
+        return True # Sucesso
+    except Exception as e:
+        print(f"Erro ao criar nova ficha: {e}")
+        return False
+
+def buscar_fichas_por_usuario(usuario_id):
+    """Busca todas as fichas de personagem que pertencem a um ID de usuário específico."""
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            # Para retornar dicionários em vez de tuplas, o que facilita no servidor.
+            conexao.row_factory = sqlite3.Row 
+            cursor = conexao.cursor()
+            cursor.execute(
+                "SELECT id, nome_personagem, classe, nivel FROM fichas_personagem WHERE usuario_id = ?",
+                (usuario_id,)
+            )
+            # fetchall() com row_factory retorna uma lista de objetos parecidos com dicionários.
+            fichas = [dict(row) for row in cursor.fetchall()]
+        return fichas
+    except Exception as e:
+        print(f"Erro ao buscar fichas por usuário: {e}")
+        return []
+# --- FUNÇÃO ATUALIZADA ---
 def verificar_login(nome_usuario, senha_texto_puro):
     """
-    Verifica se o nome de usuário existe e se a senha fornecida corresponde ao hash no banco de dados.
-    Retorna True se o login for válido, False caso contrário.
+    Verifica se o usuário existe e a senha está correta.
+    Retorna o ID do usuário em caso de sucesso, ou None em caso de falha.
     """
     try:
-        conexao = sqlite3.connect(NOME_DB)
-        cursor = conexao.cursor()
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            # 1. ATUALIZAÇÃO: Agora buscamos o 'id' junto com a 'senha_hash'.
+            cursor.execute(
+                "SELECT id, senha_hash FROM usuarios WHERE nome_usuario = ?",
+                (nome_usuario,)
+            )
+            resultado = cursor.fetchone()
 
-        # Busca o hash da senha para o nome de usuário fornecido.
-        cursor.execute(
-            "SELECT senha_hash FROM usuarios WHERE nome_usuario = ?",
-            (nome_usuario,) # A vírgula é importante para que o Python entenda que é uma tupla de um elemento.
-        )
-        resultado = cursor.fetchone() # Pega o primeiro (e único) resultado.
-        conexao.close()
-
-        # Se 'resultado' for None, significa que o usuário não foi encontrado.
+        # Se o usuário não for encontrado, 'resultado' será None.
         if resultado is None:
-            return False
+            return None
 
-        # Extrai o hash da senha (que está no primeiro índice da tupla).
-        senha_hash_db = resultado[0]
-        # Transforma a senha que o usuário digitou em bytes.
+        # Desempacota o resultado da busca.
+        user_id, senha_hash_db = resultado[0], resultado[1]
+        # Converte a senha fornecida pelo usuário para bytes.
         senha_bytes = senha_texto_puro.encode('utf-8')
 
-        # A MÁGICA DO BCRYPT: bcrypt.checkpw() compara a senha em texto puro com o hash do banco de dados.
-        # Retorna True se corresponderem, False caso contrário. É a forma segura de verificar senhas.
+        # Compara a senha fornecida com o hash guardado no banco de dados.
         if bcrypt.checkpw(senha_bytes, senha_hash_db):
-            # A senha está correta! Login válido.
-            return True
+            # 2. ATUALIZAÇÃO: Se a senha corresponder, retornamos o ID do usuário.
+            return user_id
         else:
-            # A senha está incorreta. Login inválido.
-            return False
+            # Se a senha não corresponder, retornamos None.
+            return None
             
     except Exception as e:
         print(f"Erro ao verificar login: {e}")
-        return False
+        return None
+    
+    

@@ -160,3 +160,15 @@ h1 {
   color: #c59d5f;
   font-weight: bold;
 }
+.nav-logout-button {
+  background: none;
+  border: none;
+  color: #c59d5f;
+  font-family: 'MedievalSharp', cursive;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.nav-logout-button:hover {
+  color: #fff;
+}

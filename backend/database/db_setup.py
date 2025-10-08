@@ -73,6 +73,27 @@ CREATE TABLE IF NOT EXISTS usuarios (
 """)
 print("Tabela 'usuarios' verificada/criada com sucesso!")
 
+# --- NOVA TABELA: fichas_personagem ---
+# Armazena as fichas de personagem criadas pelos usuários.
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS fichas_personagem (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario_id INTEGER NOT NULL,
+    nome_personagem TEXT NOT NULL,
+    classe TEXT NOT NULL,
+    nivel INTEGER NOT NULL DEFAULT 1,
+    atributos_json TEXT NOT NULL,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+);
+""")
+# Explicação:
+# usuario_id: Guarda o ID do usuário "dono" desta ficha.
+# atributos_json: Vamos guardar o dicionário de atributos (Força, Destreza...) como um texto no formato JSON.
+# FOREIGN KEY: Esta é a "ligação mágica"! Ela cria uma referência formal entre o 'usuario_id' desta
+# tabela e o 'id' da tabela 'usuarios'. Garante que uma ficha sempre pertencerá a um usuário válido.
+
+print("Tabela 'fichas_personagem' verificada/criada com sucesso!")
+
 # O comando 'commit' salva permanentemente todas as alterações (criação de tabelas) no banco de dados.
 conexao.commit()
 
