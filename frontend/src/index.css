@@ -172,3 +172,19 @@ h1 {
 .nav-logout-button:hover {
   color: #fff;
 }
+.mode-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 colunas */
+  gap: 0.5rem;
+  text-align: left;
+}
+.skill-checkbox {
+  display: flex;
+  align-items: center;
+}

@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS fichas_personagem (
     usuario_id INTEGER NOT NULL,
     nome_personagem TEXT NOT NULL,
     classe TEXT NOT NULL,
+    raca TEXT,
+    antecedente TEXT,
     nivel INTEGER NOT NULL DEFAULT 1,
     atributos_json TEXT NOT NULL,
     FOREIGN KEY (usuario_id) REFERENCES usuarios (id)

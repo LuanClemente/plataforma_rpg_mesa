@@ -107,20 +107,23 @@ def registrar_novo_usuario(nome_usuario, senha_texto_puro):
         return False
 
 
-def criar_nova_ficha(usuario_id, nome_personagem, classe, atributos):
-    """Insere uma nova ficha de personagem no banco de dados, associada a um usuário."""
+def criar_nova_ficha(usuario_id, nome_personagem, classe, raca, antecedente, atributos, pericias):
+    """Insere uma nova ficha de personagem completa no banco de dados."""
     try:
-        # Convertemos o dicionário de atributos para uma string no formato JSON.
-        # É assim que guardamos dados complexos (como dicionários) em um campo de texto no DB.
+        # Converte os dicionários/listas para strings JSON para armazenamento.
         atributos_str_json = json.dumps(atributos)
+        pericias_str_json = json.dumps(pericias)
 
         with sqlite3.connect(NOME_DB) as conexao:
             cursor = conexao.cursor()
+            # --- CORREÇÃO APLICADA AQUI ---
+            # O comando INSERT agora inclui as novas colunas: raca, antecedente, pericias_json
             cursor.execute(
-                "INSERT INTO fichas_personagem (usuario_id, nome_personagem, classe, nivel, atributos_json) VALUES (?, ?, ?, ?, ?)",
-                (usuario_id, nome_personagem, classe, 1, atributos_str_json) # Começa no nível 1
+                "INSERT INTO fichas_personagem (usuario_id, nome_personagem, classe, raca, antecedente, nivel, atributos_json, pericias_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                # E a tupla de valores agora contém todos os 8 parâmetros.
+                (usuario_id, nome_personagem, classe, raca, antecedente, 1, atributos_str_json, pericias_str_json)
             )
-        return True # Sucesso
+        return True
     except Exception as e:
         print(f"Erro ao criar nova ficha: {e}")
         return False
