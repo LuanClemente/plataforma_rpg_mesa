@@ -4,7 +4,6 @@
 from functools import wraps
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from database.db_manager import criar_nova_sala, listar_salas_disponiveis
 # Do nosso gerenciador de banco de dados, importamos TODAS as funções que a API irá utilizar em um único bloco.
 from database.db_manager import (
     buscar_todos_os_itens, 
@@ -15,12 +14,13 @@ from database.db_manager import (
     buscar_fichas_por_usuario,
     apagar_ficha,
     buscar_ficha_por_id,
-    atualizar_ficha
-    
+    atualizar_ficha,
+    criar_nova_sala,
+    listar_salas_disponiveis
 )
 import jwt
 from datetime import datetime, timedelta, timezone
-import json # Importa a biblioteca JSON para decodificar os campos da ficha.
+import json
 
 # --- Configuração Inicial do Servidor ---
 app = Flask(__name__)
@@ -44,7 +44,7 @@ def token_required(f):
         return f(current_user_id, *args, **kwargs)
     return decorated
 
-# --- Definição dos Endpoints da API ---
+# --- Definição dos Endpoints da API (organizados por funcionalidade) ---
 
 # --- Endpoints Públicos (GET) ---
 @app.route("/api/monstros", methods=['GET'])
@@ -84,103 +84,68 @@ def rota_fazer_login():
     if user_id:
         token_payload = {
             'sub': str(user_id), 'name': dados['username'],
-            'iat': datetime.now(timezone.utc),
-            'exp': datetime.now(timezone.utc) + timedelta(hours=24)
+            'iat': datetime.now(timezone.utc), 'exp': datetime.now(timezone.utc) + timedelta(hours=24)
         }
         token = jwt.encode(token_payload, app.config['SECRET_KEY'], algorithm='HS256')
         return jsonify({"sucesso": True, "mensagem": "Login bem-sucedido!", "token": token})
     else:
         return jsonify({"sucesso": False, "mensagem": "Nome de usuário ou senha inválidos."}), 401
 
-# --- Endpoints Protegidos para FICHAS (CRUD Completo) ---
-
+# --- Endpoints de Fichas (Protegidos) ---
 @app.route("/api/fichas", methods=['GET'])
 @token_required 
 def get_fichas_usuario(current_user_id):
-    """(READ) Busca e retorna todas as fichas que pertencem ao usuário logado."""
     fichas = buscar_fichas_por_usuario(current_user_id)
     return jsonify(fichas)
 
 @app.route("/api/fichas", methods=['POST'])
 @token_required
 def post_nova_ficha(current_user_id):
-    """(CREATE) Cria uma nova ficha de personagem para o usuário logado."""
     dados = request.get_json()
     if not all(k in dados for k in ['nome_personagem', 'classe', 'raca', 'antecedente', 'atributos', 'pericias']):
         return jsonify({'mensagem': 'Dados da ficha incompletos'}), 400
-    sucesso = criar_nova_ficha(
-        current_user_id, dados['nome_personagem'], dados['classe'],
-        dados['raca'], dados['antecedente'], dados['atributos'], dados['pericias']
-    )
+    sucesso = criar_nova_ficha(current_user_id, dados['nome_personagem'], dados['classe'], dados['raca'], dados['antecedente'], dados['atributos'], dados['pericias'])
     if sucesso:
         return jsonify({'sucesso': True, 'mensagem': 'Ficha criada com sucesso!'}), 201
     else:
         return jsonify({'sucesso': False, 'mensagem': 'Erro ao criar a ficha'}), 500
-
-@app.route("/api/fichas/<int:id>", methods=['GET'])
-@token_required
-def get_ficha_unica(current_user_id, id):
-    """(READ) Busca e retorna os detalhes de uma única ficha."""
-    ficha = buscar_ficha_por_id(id, current_user_id)
-    if ficha:
-        # CORREÇÃO: Converte as strings JSON do banco de dados de volta para objetos Python.
-        if ficha.get('atributos_json'):
-            ficha['atributos'] = json.loads(ficha['atributos_json'])
-        if ficha.get('pericias_json'):
-            ficha['pericias'] = json.loads(ficha['pericias_json'])
-        return jsonify(ficha)
-    else:
-        return jsonify({'mensagem': 'Ficha não encontrada ou permissão negada.'}), 404
-
-@app.route("/api/fichas/<int:id>", methods=['PUT'])
-@token_required
-def update_ficha(current_user_id, id):
-    """(UPDATE) Atualiza os dados de uma ficha existente."""
-    dados = request.get_json()
-    sucesso = atualizar_ficha(id, current_user_id, dados)
-    if sucesso:
-        return jsonify({'sucesso': True, 'mensagem': 'Ficha atualizada com sucesso!'})
-    else:
-        return jsonify({'sucesso': False, 'mensagem': 'Erro ao atualizar ficha ou permissão negada.'}), 404
-
+        
 @app.route("/api/fichas/<int:id>", methods=['DELETE'])
 @token_required
 def delete_ficha(current_user_id, id):
-    """(DELETE) Apaga uma ficha específica do usuário logado."""
     sucesso = apagar_ficha(id, current_user_id)
     if sucesso:
         return jsonify({'sucesso': True, 'mensagem': 'Ficha apagada com sucesso!'})
     else:
         return jsonify({'sucesso': False, 'mensagem': 'Ficha não encontrada ou permissão negada.'}), 404
 
-# --- Bloco para Iniciar o Servidor ---
-if __name__ == "__main__":
-    app.run(debug=True, port=5001)
-    # --- NOVOS ENDPOINTS PARA SALAS ---
+# --- NOVOS ENDPOINTS PARA SALAS (MOVIDOS PARA O LUGAR CORRETO) ---
 
 @app.route("/api/salas", methods=['GET'])
-@token_required # Protegido, pois só usuários logados podem ver as salas
+@token_required
 def get_salas(current_user_id):
     """Busca e retorna a lista de todas as salas de campanha disponíveis."""
     salas = listar_salas_disponiveis()
     return jsonify(salas)
 
 @app.route("/api/salas", methods=['POST'])
-@token_required # Protegido, pois só um usuário logado (Mestre) pode criar uma sala
+@token_required
 def post_nova_sala(current_user_id):
     """Cria uma nova sala de campanha."""
     dados = request.get_json()
     if not dados or 'nome' not in dados:
         return jsonify({'mensagem': 'Nome da sala é obrigatório.'}), 400
     
-    # A senha é opcional
     senha = dados.get('senha', None)
     nome_sala = dados['nome']
-
-    # O 'current_user_id' do token é o ID do Mestre que está criando a sala.
+    
     sucesso = criar_nova_sala(nome_sala, senha, current_user_id)
-
     if sucesso:
         return jsonify({'sucesso': True, 'mensagem': 'Sala criada com sucesso!'}), 201
     else:
         return jsonify({'sucesso': False, 'mensagem': 'Nome de sala já existe ou erro ao criar.'}), 409
+
+# --- Bloco para Iniciar o Servidor ---
+# Este deve ser o final do seu arquivo.
+if __name__ == "__main__":
+    app.run(debug=True, port=5001)
