@@ -1,52 +1,63 @@
 // frontend/src/pages/LoginPage.jsx
 
-// Importamos o 'useState' para controlar os campos do formulário.
-import { useState } from 'react';
-// Importamos o 'Link' para o link de "Criar conta". O useNavigate não é mais necessário aqui.
+// Importa as ferramentas 'useState' e 'useEffect' do React.
+// useState para gerenciar dados que mudam (o texto nos inputs).
+// useEffect para executar "efeitos colaterais" (como modificar o <body> do HTML).
+import { useState, useEffect } from 'react';
+// Importa o componente 'Link' do React Router para criar links de navegação que não recarregam a página.
 import { Link } from 'react-router-dom';
-// 1. Importamos nosso hook 'useAuth', que nos dá acesso ao "Quadro de Avisos" (nosso AuthContext).
+// Importamos nosso hook 'useAuth' para acessar a função de login centralizada no nosso AuthContext.
 import { useAuth } from '../context/AuthContext';
 
 // Define o componente da página de Login.
 function LoginPage() {
-  // Estados para guardar os valores dos campos do formulário (sem alterações).
+  // --- Estados do Componente ---
+  // Estado para guardar o valor do campo de usuário.
   const [username, setUsername] = useState('');
+  // Estado para guardar o valor do campo de senha.
   const [password, setPassword] = useState('');
   // Estado para guardar mensagens de erro ou sucesso para o usuário.
   const [message, setMessage] = useState('');
   
-  // 2. Usamos nosso hook para pegar a função 'login' que está centralizada no AuthContext.
-  // Não precisamos mais do 'navigate' aqui, pois o próprio AuthContext cuidará do redirecionamento.
+  // Usamos nosso hook para pegar a função 'login' do AuthContext.
   const { login } = useAuth();
 
-  // Esta é a nova função 'handleSubmit', agora muito mais simples.
-  const handleSubmit = async (event) => {
-    // Impede o recarregamento padrão da página.
-    event.preventDefault(); 
-    // Limpa mensagens de erro antigas.
-    setMessage('');
+  // --- Efeito para o Fundo da Página ---
+  // Este useEffect gerencia a classe CSS no <body> para o fundo temático.
+  useEffect(() => {
+    // Quando o componente LoginPage é "montado" (aparece na tela),
+    // nós adicionamos a classe CSS 'login-page-body' ao <body> do documento.
+    document.body.classList.add('login-page-body');
 
+    // O 'return' de um useEffect é uma "função de limpeza".
+    // Ela é executada quando o componente é "desmontado" (quando o usuário navega para outra página).
+    return () => {
+      // Nós removemos a classe para que as outras páginas não tenham a imagem de fundo.
+      document.body.classList.remove('login-page-body');
+    };
+  }, []); // O array vazio '[]' garante que este efeito rode apenas uma vez (na montagem) e a limpeza uma vez (na desmontagem).
+
+  // --- Funções de Lógica ---
+  // Função que é chamada quando o formulário é enviado.
+  const handleSubmit = async (event) => {
+    event.preventDefault(); // Impede o recarregamento padrão da página.
+    setMessage(''); // Limpa mensagens de erro antigas a cada nova tentativa.
     try {
-      // 3. Simplesmente chamamos a função 'login' do nosso contexto, passando o usuário e a senha.
-      // A função 'login' no AuthContext agora é responsável por fazer o fetch,
-      // atualizar o estado global do usuário e redirecionar a página.
+      // Chama a função 'login' do nosso contexto, que lida com a chamada à API.
       const response = await login(username, password);
-      
       // Se a resposta do login (que vem do AuthContext) indicar falha...
       if (!response.sucesso) {
-        // ...mostramos a mensagem de erro que ela nos retornou.
+        // ...mostramos a mensagem de erro que o backend nos enviou.
         setMessage(response.mensagem);
       }
-      // Não precisamos mais do 'else' ou do 'setTimeout', pois o AuthContext já cuida do sucesso.
-
     } catch (error) {
-      // O catch ainda é útil para erros inesperados.
+      // Captura erros inesperados durante o processo.
       setMessage("Ocorreu um erro inesperado.");
       console.error("Erro no handleSubmit do Login:", error);
     }
   };
 
-  // O JSX do formulário (a parte visual) permanece exatamente o mesmo.
+  // --- Renderização do Componente (JSX) ---
   return (
     <div className="login-container">
       <h1>Acesso à Fortaleza</h1>

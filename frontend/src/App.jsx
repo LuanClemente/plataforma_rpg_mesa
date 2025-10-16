@@ -7,7 +7,9 @@ import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import FichasPage from './pages/FichasPage'; // A nossa nova página!
+import FichasPage from './pages/FichasPage';
+import FichaEditPage from './pages/FichaEditPage';
+import SalasPage from './pages/SalasPage'; // A nossa nova página de Salas!
 
 // Importa nossos componentes reutilizáveis.
 import ProtectedRoute from './components/ProtectedRoute';
@@ -36,8 +38,8 @@ function App() {
           <Route path="/registrar" element={<RegisterPage />} />
           
           {/* Rota para a Home Page (Bestiário). */}
-          {/* Ela está "envelopada" pelo nosso componente ProtectedRoute. */}
-          {/* Isso significa que um usuário só pode acessar /home se estiver logado. */}
+          {/* Ela está "envelopada" pelo nosso componente ProtectedRoute, */}
+          {/* o que significa que um usuário só pode acessá-la se estiver logado. */}
           <Route 
             path="/home" 
             element={
@@ -47,14 +49,33 @@ function App() {
             } 
           />
 
-          {/* --- NOVA ROTA ADICIONADA --- */}
-          {/* Rota para a página "Minhas Fichas". */}
-          {/* Ela também está protegida, garantindo que apenas usuários logados possam ver suas fichas. */}
+          {/* Rota para a página "Minhas Fichas". Também protegida. */}
           <Route 
             path="/fichas" 
             element={
               <ProtectedRoute>
                 <FichasPage />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Rota para a página de edição de uma ficha específica. O ':id' é um parâmetro dinâmico. */}
+          <Route 
+            path="/fichas/editar/:id" 
+            element={
+              <ProtectedRoute>
+                <FichaEditPage />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* --- NOVA ROTA ADICIONADA --- */}
+          {/* Rota para a página "Salas". Também está protegida pelo nosso "sentinela". */}
+          <Route 
+            path="/salas" 
+            element={
+              <ProtectedRoute>
+                <SalasPage />
               </ProtectedRoute>
             } 
           />
