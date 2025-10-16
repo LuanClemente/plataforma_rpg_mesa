@@ -4,7 +4,10 @@
 from functools import wraps
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-# Do nosso gerenciador de banco de dados, importamos TODAS as funções que a API irá utilizar em um único bloco.
+from database.db_manager import verificar_senha_da_sala
+# Importa as ferramentas do Flask-SocketIO para comunicação em tempo real.
+from flask_socketio import SocketIO, send, join_room, leave_room
+# Do nosso gerenciador de banco de dados, importamos TODAS as funções que a API irá utilizar.
 from database.db_manager import (
     buscar_todos_os_itens, 
     buscar_todos_os_monstros,
@@ -25,7 +28,13 @@ import json
 # --- Configuração Inicial do Servidor ---
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'uma-chave-secreta-muito-forte-e-dificil-de-adivinhar-12345'
-CORS(app)
+CORS(app, origins=["http://localhost:5173"])
+
+# --- CONFIGURAÇÃO CORRETA E FINAL DO CORS ---
+# Dizemos explicitamente ao SocketIO para usar o motor 'eventlet' (que precisa estar instalado via pip).
+# Isso garante que ele assuma o controle de TODAS as requisições (HTTP e WebSocket) corretamente.
+# A configuração 'cors_allowed_origins' é gerenciada aqui para toda a aplicação.
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # --- Decorator de Autenticação (O "Segurança") ---
 def token_required(f):
@@ -44,27 +53,21 @@ def token_required(f):
         return f(current_user_id, *args, **kwargs)
     return decorated
 
-# --- Definição dos Endpoints da API (organizados por funcionalidade) ---
-
-# --- Endpoints Públicos (GET) ---
+# --- Endpoints da API REST (Nenhuma alteração na lógica interna das rotas) ---
 @app.route("/api/monstros", methods=['GET'])
 def get_monstros():
-    """Retorna a lista de todos os monstros da biblioteca."""
     monstros_db = buscar_todos_os_monstros()
     lista_de_monstros = [{'id': m[0], 'nome': m[1], 'vida': m[2], 'ataque_bonus': m[3], 'dano_dado': m[4], 'defesa': m[5], 'xp': m[6], 'ouro': m[7]} for m in monstros_db]
     return jsonify(lista_de_monstros)
 
 @app.route("/api/itens", methods=['GET'])
 def get_itens():
-    """Retorna a lista de todos os itens da biblioteca."""
     itens_db = buscar_todos_os_itens()
     lista_de_itens = [{'id': i[0], 'nome': i[1], 'tipo': i[2], 'descricao': i[3], 'preco': i[4], 'dano': i[5], 'bonus_ataque': i[6], 'efeito': i[7]} for i in itens_db]
     return jsonify(lista_de_itens)
 
-# --- Endpoints de Autenticação (POST) ---
 @app.route("/api/registrar", methods=['POST'])
 def rota_registrar_usuario():
-    """Recebe dados de novo usuário e o salva no DB."""
     dados = request.get_json()
     if not dados or 'username' not in dados or 'password' not in dados:
         return jsonify({"sucesso": False, "mensagem": "Dados incompletos."}), 400
@@ -76,7 +79,6 @@ def rota_registrar_usuario():
 
 @app.route("/api/login", methods=['POST'])
 def rota_fazer_login():
-    """Recebe credenciais, verifica no DB e retorna um token JWT se forem válidas."""
     dados = request.get_json()
     if not dados or 'username' not in dados or 'password' not in dados:
         return jsonify({"sucesso": False, "mensagem": "Dados ausentes."}), 400
@@ -91,7 +93,6 @@ def rota_fazer_login():
     else:
         return jsonify({"sucesso": False, "mensagem": "Nome de usuário ou senha inválidos."}), 401
 
-# --- Endpoints de Fichas (Protegidos) ---
 @app.route("/api/fichas", methods=['GET'])
 @token_required 
 def get_fichas_usuario(current_user_id):
@@ -109,7 +110,7 @@ def post_nova_ficha(current_user_id):
         return jsonify({'sucesso': True, 'mensagem': 'Ficha criada com sucesso!'}), 201
     else:
         return jsonify({'sucesso': False, 'mensagem': 'Erro ao criar a ficha'}), 500
-        
+
 @app.route("/api/fichas/<int:id>", methods=['DELETE'])
 @token_required
 def delete_ficha(current_user_id, id):
@@ -118,34 +119,77 @@ def delete_ficha(current_user_id, id):
         return jsonify({'sucesso': True, 'mensagem': 'Ficha apagada com sucesso!'})
     else:
         return jsonify({'sucesso': False, 'mensagem': 'Ficha não encontrada ou permissão negada.'}), 404
-
-# --- NOVOS ENDPOINTS PARA SALAS (MOVIDOS PARA O LUGAR CORRETO) ---
-
+        
 @app.route("/api/salas", methods=['GET'])
 @token_required
 def get_salas(current_user_id):
-    """Busca e retorna a lista de todas as salas de campanha disponíveis."""
     salas = listar_salas_disponiveis()
     return jsonify(salas)
 
 @app.route("/api/salas", methods=['POST'])
 @token_required
 def post_nova_sala(current_user_id):
-    """Cria uma nova sala de campanha."""
     dados = request.get_json()
     if not dados or 'nome' not in dados:
         return jsonify({'mensagem': 'Nome da sala é obrigatório.'}), 400
-    
     senha = dados.get('senha', None)
     nome_sala = dados['nome']
-    
     sucesso = criar_nova_sala(nome_sala, senha, current_user_id)
     if sucesso:
         return jsonify({'sucesso': True, 'mensagem': 'Sala criada com sucesso!'}), 201
     else:
         return jsonify({'sucesso': False, 'mensagem': 'Nome de sala já existe ou erro ao criar.'}), 409
 
+# --- NOVO ENDPOINT PARA VERIFICAÇÃO DE SENHA DA SALA ---
+@app.route("/api/salas/verificar-senha", methods=['POST'])
+@token_required # Protegido, pois só usuários logados podem tentar entrar.
+def rota_verificar_senha_sala(current_user_id):
+    """Verifica se a senha fornecida para uma sala é válida."""
+    dados = request.get_json()
+    if not dados or 'sala_id' not in dados or 'senha' not in dados:
+        return jsonify({'sucesso': False, 'mensagem': 'Dados incompletos.'}), 400
+
+    sala_id = dados['sala_id']
+    senha = dados['senha']
+
+    # Chama a função do db_manager para fazer a verificação segura.
+    senha_valida = verificar_senha_da_sala(sala_id, senha)
+
+    if senha_valida:
+        # Se a senha for válida, responde com sucesso.
+        return jsonify({'sucesso': True})
+    else:
+        # Se for inválida, responde com erro de não autorizado.
+        return jsonify({'sucesso': False, 'mensagem': 'Senha da sala incorreta.'}), 401
+# --- Gerenciadores de Eventos WebSocket ---
+@socketio.on('connect')
+def handle_connect():
+    print(f"Cliente conectado com WebSocket! ID da sessão: {request.sid}")
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print(f"Cliente desconectado do WebSocket! ID da sessão: {request.sid}")
+
+@socketio.on('join_room')
+def handle_join_room(data):
+    token = data.get('token')
+    sala_id = data.get('sala_id')
+
+    if not token or not sala_id:
+        send({'error': 'Token ou ID da sala ausente.'})
+        return
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        username = user_data['name']
+        join_room(sala_id)
+        send(f"--- {username} entrou na taverna! ---", to=sala_id)
+        print(f"Usuário '{username}' (ID: {user_data['sub']}) entrou na sala {sala_id}")
+    except Exception as e:
+        print(f"Falha na autenticação para entrar na sala: {e}")
+        send({'error': 'Autenticação falhou.'})
+
 # --- Bloco para Iniciar o Servidor ---
-# Este deve ser o final do seu arquivo.
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    # Usamos 'socketio.run()' para iniciar o servidor com o motor correto (eventlet).
+    socketio.run(app, debug=True, port=5001)

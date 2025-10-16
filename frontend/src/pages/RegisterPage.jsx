@@ -1,62 +1,67 @@
 // frontend/src/pages/RegisterPage.jsx
-import { useState } from 'react';
-// useNavigate é uma ferramenta do React Router para redirecionar o usuário após uma ação.
+
+// Importa as ferramentas 'useState' e 'useEffect' do React e 'useNavigate' do React Router.
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+// Define o componente da página de Registro.
 function RegisterPage() {
-  // Criamos estados para cada campo do nosso formulário.
+  // --- Estados do Componente ---
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  // Estado para guardar mensagens de erro ou sucesso.
-  const [message, setMessage] = useState('');
-  // Inicializamos o hook de navegação.
-  const navigate = useNavigate();
+  const [message, setMessage] = useState(''); // Guarda mensagens de feedback (ex: "Usuário criado!").
+  const navigate = useNavigate(); // Hook para redirecionar o usuário.
 
+  // --- Efeitos do Componente ---
+  // Este useEffect gerencia o fundo temático da página.
+  useEffect(() => {
+    // Adiciona a mesma classe da página de login para manter a consistência visual.
+    document.body.classList.add('login-page-body');
+    // A função de limpeza (return) é executada quando o usuário sai desta página.
+    return () => {
+      // Remove a classe para que as outras páginas não tenham a mesma imagem de fundo.
+      document.body.classList.remove('login-page-body');
+    };
+  }, []); // O array vazio '[]' garante que este efeito rode apenas uma vez.
+
+  // --- Funções de Lógica ---
   // Função chamada quando o formulário é enviado.
   const handleSubmit = async (event) => {
-    // Impede o recarregamento padrão da página.
-    event.preventDefault();
+    event.preventDefault(); // Impede o recarregamento padrão da página.
 
-    // Verificação simples: a senha e a confirmação são iguais?
+    // Validação no frontend: verifica se a senha e a confirmação são iguais.
     if (password !== confirmPassword) {
       setMessage("As senhas não correspondem!");
       return; // Interrompe a função se as senhas forem diferentes.
     }
 
-    // Tenta enviar os dados para a API de registro.
     try {
+      // Envia os dados para a API de registro no backend.
       const response = await fetch('http://127.0.0.1:5001/api/registrar', {
-        method: 'POST', // O método agora é POST, pois estamos enviando dados.
-        headers: {
-          'Content-Type': 'application/json', // Avisa ao backend que estamos enviando JSON.
-        },
-        // Converte nosso objeto JavaScript para uma string JSON.
-        body: JSON.stringify({ username, password }),
+        method: 'POST', // Usamos POST para criar um novo recurso (usuário).
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }), // Envia o usuário e a senha no corpo da requisição.
       });
 
-      // Pega a resposta JSON do backend.
-      const data = await response.json();
+      const data = await response.json(); // Lê a resposta do backend.
+      setMessage(data.mensagem); // Mostra a mensagem de sucesso ou erro do backend.
 
-      // Define a mensagem de feedback para o usuário com base na resposta.
-      setMessage(data.mensagem);
-
-      // Se o registro for um sucesso...
       if (data.sucesso) {
-        // ...espera 2 segundos e redireciona o usuário para a página de login.
+        // Se o registro for bem-sucedido, espera 2 segundos e redireciona para a página de login.
         setTimeout(() => {
-          navigate('/'); // A função navigate nos leva para a rota raiz (Login).
+          navigate('/'); // Redireciona para a rota raiz ('/').
         }, 2000);
       }
     } catch (error) {
-      // Em caso de erro de rede (backend offline, etc.)
       setMessage("Erro de conexão ao tentar registrar.");
       console.error("Erro de registro:", error);
     }
   };
 
+  // --- Renderização do Componente (JSX) ---
   return (
-    <div className="login-container"> {/* Reutilizando o estilo da página de login */}
+    <div className="login-container">
       <h1>Criar Nova Conta</h1>
       <form onSubmit={handleSubmit} className="login-form">
         <div className="form-group">
@@ -91,7 +96,7 @@ function RegisterPage() {
         </div>
         <button type="submit" className="login-button">Registrar</button>
       </form>
-      {/* Exibe a mensagem de feedback (erro ou sucesso) para o usuário */}
+      {/* Exibe a mensagem de feedback para o usuário */}
       {message && <p className="feedback-message">{message}</p>}
     </div>
   );

@@ -211,6 +211,36 @@ def atualizar_ficha(ficha_id, usuario_id, novos_dados):
         print(f"Erro ao atualizar ficha: {e}")
         return False
     
+    # --- NOVA FUNÇÃO PARA VERIFICAR SENHA DA SALA ---
+def verificar_senha_da_sala(sala_id, senha_texto_puro):
+    """Verifica se a senha fornecida para uma sala corresponde ao hash no DB."""
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            # Busca apenas o hash da senha da sala específica.
+            cursor.execute(
+                "SELECT senha_hash FROM salas WHERE id = ?",
+                (sala_id,)
+            )
+            resultado = cursor.fetchone()
+
+        # Se não encontrar a sala, ou se a sala não tiver senha (for pública).
+        if not resultado or not resultado[0]:
+            return False # Não deveria acontecer para uma sala privada, mas é uma segurança.
+
+        senha_hash_db = resultado[0]
+        senha_bytes = senha_texto_puro.encode('utf-8')
+
+        # Usa bcrypt para comparar a senha fornecida com o hash.
+        if bcrypt.checkpw(senha_bytes, senha_hash_db):
+            return True # Senha correta!
+        else:
+            return False # Senha incorreta.
+            
+    except Exception as e:
+        print(f"Erro ao verificar senha da sala: {e}")
+        return False
+    
     # --- NOVAS FUNÇÕES DE GERENCIAMENTO DE SALAS ---
 
 def criar_nova_sala(nome_sala, senha, mestre_id):

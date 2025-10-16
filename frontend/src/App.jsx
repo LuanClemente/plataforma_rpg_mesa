@@ -9,7 +9,8 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import FichasPage from './pages/FichasPage';
 import FichaEditPage from './pages/FichaEditPage';
-import SalasPage from './pages/SalasPage'; // A nossa nova página de Salas!
+import SalasPage from './pages/SalasPage'; // A página com a LISTA de salas.
+import SalaPage from './pages/SalaPage';   // A página da sala de jogo INDIVIDUAL.
 
 // Importa nossos componentes reutilizáveis.
 import ProtectedRoute from './components/ProtectedRoute';
@@ -69,13 +70,24 @@ function App() {
             } 
           />
 
-          {/* --- NOVA ROTA ADICIONADA --- */}
-          {/* Rota para a página "Salas". Também está protegida pelo nosso "sentinela". */}
+          {/* Rota para a página com a LISTA de salas. Também protegida. */}
           <Route 
             path="/salas" 
             element={
               <ProtectedRoute>
                 <SalasPage />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* --- ROTA ADICIONADA E CORRIGIDA --- */}
+          {/* Rota para a página da sala de jogo INDIVIDUAL. */}
+          {/* O ':id' na URL é um parâmetro dinâmico que representa o ID da sala. */}
+          <Route 
+            path="/salas/:id" 
+            element={
+              <ProtectedRoute>
+                <SalaPage />
               </ProtectedRoute>
             } 
           />
