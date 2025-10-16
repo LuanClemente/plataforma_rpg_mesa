@@ -1,15 +1,16 @@
 # core/loja.py
 
-# A loja precisa saber como buscar os itens no DB, então importa a função do nosso gerenciador.
-from database.db_manager import buscar_todos_os_itens
-# A loja precisa interagir com o jogador (Personagem) para ver seu ouro e adicionar itens ao seu inventário.
-# O ': Personagem' é uma "type hint" (dica de tipo), que ajuda a entender que a função espera um objeto do tipo Personagem.
-from .personagem import Personagem
+# --- CORREÇÃO DE IMPORTAÇÃO ---
+# Alteramos as importações de relativas para absolutas, a partir da raiz 'backend'.
+from backend.database.db_manager import buscar_todos_os_itens
+from backend.core.personagem import Personagem
 
 def iniciar_loja(jogador: Personagem):
     """
     Inicia e gerencia o loop de interação da loja para o jogador.
     Recebe o objeto do jogador para poder verificar seu ouro e adicionar itens.
+    
+    (Esta é uma função do nosso jogo de terminal original e não é usada pela API/Frontend).
     """
     # Imprime uma mensagem temática de boas-vindas para a loja.
     print("\n" + "="*40)
@@ -23,7 +24,6 @@ def iniciar_loja(jogador: Personagem):
     # Se a função retornar uma lista vazia (nenhum item no DB), exibe uma mensagem e encerra a função.
     if not inventario_loja:
         print("\nO mercador parece estar sem estoque hoje. Volte mais tarde!")
-        # 'return' encerra a função da loja e o controle volta para o menu principal do jogo.
         return
 
     # O loop 'while True' mantém o jogador dentro da loja até que ele decida sair.
@@ -33,7 +33,6 @@ def iniciar_loja(jogador: Personagem):
         print("\n--- Itens à Venda ---")
         
         # Itera sobre a lista de itens (tuplas) retornada pelo banco de dados para exibi-los.
-        # 'enumerate' nos dá um contador 'i' (começando em 0) e o 'item' a cada iteração.
         for i, item in enumerate(inventario_loja):
             # Formata e imprime cada item da loja de forma organizada.
             # item[1] é o nome, item[4] é o preco_ouro.
@@ -55,20 +54,15 @@ def iniciar_loja(jogador: Personagem):
             
             # Verifica se o número escolhido corresponde a um item válido na lista da loja.
             if 0 <= indice_escolhido < len(inventario_loja):
-                # Pega a tupla do item selecionado da lista.
                 item_selecionado = inventario_loja[indice_escolhido]
-                # Extrai o nome e o preço do item para variáveis mais legíveis.
                 nome_item = item_selecionado[1]
                 preco_item = item_selecionado[4]
 
                 # A verificação principal: o jogador tem ouro suficiente?
                 if jogador.ouro >= preco_item:
                     # Se sim, processa a compra.
-                    # Subtrai o preço do ouro do jogador.
                     jogador.ouro -= preco_item
-                    # Chama o método do próprio personagem para adicionar o item ao seu inventário.
                     jogador.adicionar_item(nome_item)
-                    # Dá um feedback positivo ao jogador.
                     print(f"\nVocê comprou '{nome_item}' por {preco_item} de ouro!")
                 else:
                     # Se não tiver ouro suficiente, informa ao jogador.

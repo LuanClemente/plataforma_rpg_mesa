@@ -1,13 +1,16 @@
 # servidor/servidor_api.py
 
-# --- Importações ---
-from functools import wraps
+# --- IMPORTS PRINCIPAIS ---
 from flask import Flask, jsonify, request
-from flask_cors import CORS
-from database.db_manager import verificar_senha_da_sala
-# Importa as ferramentas do Flask-SocketIO para comunicação em tempo real.
-from flask_socketio import SocketIO, send, join_room, leave_room
-# Do nosso gerenciador de banco de dados, importamos TODAS as funções que a API irá utilizar.
+from flask_socketio import SocketIO, send, join_room
+from flask_cors import CORS  # Mantido, conforme sua solução funcional.
+from functools import wraps
+import jwt
+from datetime import datetime, timedelta, timezone
+import json
+
+# --- IMPORTS DE MÓDULOS INTERNOS ---
+# Importações do nosso projeto, agora em um bloco único e organizado.
 from database.db_manager import (
     buscar_todos_os_itens, 
     buscar_todos_os_monstros,
@@ -19,26 +22,28 @@ from database.db_manager import (
     buscar_ficha_por_id,
     atualizar_ficha,
     criar_nova_sala,
-    listar_salas_disponiveis
+    listar_salas_disponiveis,
+    verificar_senha_da_sala,
+    salvar_mensagem_chat,
+    buscar_historico_chat,
+    buscar_dados_essenciais_ficha
 )
-import jwt
-from datetime import datetime, timedelta, timezone
-import json
+from core.rolador_de_dados import rolar_dados
 
-# --- Configuração Inicial do Servidor ---
+# --- CONFIGURAÇÃO DO SERVIDOR ---
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'uma-chave-secreta-muito-forte-e-dificil-de-adivinhar-12345'
-CORS(app, origins=["http://localhost:5173"])
 
-# --- CONFIGURAÇÃO CORRETA E FINAL DO CORS ---
-# Dizemos explicitamente ao SocketIO para usar o motor 'eventlet' (que precisa estar instalado via pip).
-# Isso garante que ele assuma o controle de TODAS as requisições (HTTP e WebSocket) corretamente.
-# A configuração 'cors_allowed_origins' é gerenciada aqui para toda a aplicação.
+# --- CONFIGURAÇÃO DE CORS (SUA SOLUÇÃO FUNCIONAL) ---
+# Gerencia o CORS para as rotas REST tradicionais (@app.route).
+CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
+
+# O SocketIO gerencia o CORS para as conexões WebSocket.
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-# --- Decorator de Autenticação (O "Segurança") ---
+# --- DECORATOR DE AUTENTICAÇÃO JWT ---
 def token_required(f):
-    """Decorator que verifica o token JWT antes de executar uma rota protegida."""
+    """Verifica se o token JWT é válido antes de permitir acesso à rota."""
     @wraps(f)
     def decorated(*args, **kwargs):
         token = request.headers.get('x-access-token')
@@ -53,7 +58,9 @@ def token_required(f):
         return f(current_user_id, *args, **kwargs)
     return decorated
 
-# --- Endpoints da API REST (Nenhuma alteração na lógica interna das rotas) ---
+# --- ROTAS REST DA API (ORGANIZADAS POR FUNCIONALIDADE) ---
+
+# --- Rotas Públicas ---
 @app.route("/api/monstros", methods=['GET'])
 def get_monstros():
     monstros_db = buscar_todos_os_monstros()
@@ -66,6 +73,7 @@ def get_itens():
     lista_de_itens = [{'id': i[0], 'nome': i[1], 'tipo': i[2], 'descricao': i[3], 'preco': i[4], 'dano': i[5], 'bonus_ataque': i[6], 'efeito': i[7]} for i in itens_db]
     return jsonify(lista_de_itens)
 
+# --- Rotas de Autenticação ---
 @app.route("/api/registrar", methods=['POST'])
 def rota_registrar_usuario():
     dados = request.get_json()
@@ -84,17 +92,15 @@ def rota_fazer_login():
         return jsonify({"sucesso": False, "mensagem": "Dados ausentes."}), 400
     user_id = verificar_login(dados['username'], dados['password'])
     if user_id:
-        token_payload = {
-            'sub': str(user_id), 'name': dados['username'],
-            'iat': datetime.now(timezone.utc), 'exp': datetime.now(timezone.utc) + timedelta(hours=24)
-        }
+        token_payload = {'sub': str(user_id), 'name': dados['username'], 'iat': datetime.now(timezone.utc), 'exp': datetime.now(timezone.utc) + timedelta(hours=24)}
         token = jwt.encode(token_payload, app.config['SECRET_KEY'], algorithm='HS256')
         return jsonify({"sucesso": True, "mensagem": "Login bem-sucedido!", "token": token})
     else:
         return jsonify({"sucesso": False, "mensagem": "Nome de usuário ou senha inválidos."}), 401
 
+# --- Rotas de Fichas (Protegidas) ---
 @app.route("/api/fichas", methods=['GET'])
-@token_required 
+@token_required
 def get_fichas_usuario(current_user_id):
     fichas = buscar_fichas_por_usuario(current_user_id)
     return jsonify(fichas)
@@ -103,7 +109,8 @@ def get_fichas_usuario(current_user_id):
 @token_required
 def post_nova_ficha(current_user_id):
     dados = request.get_json()
-    if not all(k in dados for k in ['nome_personagem', 'classe', 'raca', 'antecedente', 'atributos', 'pericias']):
+    campos_obrigatorios = ['nome_personagem', 'classe', 'raca', 'antecedente', 'atributos', 'pericias']
+    if not all(k in dados for k in campos_obrigatorios):
         return jsonify({'mensagem': 'Dados da ficha incompletos'}), 400
     sucesso = criar_nova_ficha(current_user_id, dados['nome_personagem'], dados['classe'], dados['raca'], dados['antecedente'], dados['atributos'], dados['pericias'])
     if sucesso:
@@ -111,6 +118,33 @@ def post_nova_ficha(current_user_id):
     else:
         return jsonify({'sucesso': False, 'mensagem': 'Erro ao criar a ficha'}), 500
 
+# --- ROTAS DE EDIÇÃO QUE ESTAVAM FALTANDO ---
+@app.route("/api/fichas/<int:id>", methods=['GET'])
+@token_required
+def get_ficha_unica(current_user_id, id):
+    """Busca e retorna os detalhes de uma única ficha para a página de edição."""
+    ficha = buscar_ficha_por_id(id, current_user_id)
+    if ficha:
+        # Converte as strings JSON do banco de dados de volta para objetos Python.
+        if ficha.get('atributos_json'):
+            ficha['atributos'] = json.loads(ficha['atributos_json'])
+        if ficha.get('pericias_json'):
+            ficha['pericias'] = json.loads(ficha['pericias_json'])
+        return jsonify(ficha)
+    else:
+        return jsonify({'mensagem': 'Ficha não encontrada ou permissão negada.'}), 404
+
+@app.route("/api/fichas/<int:id>", methods=['PUT'])
+@token_required
+def update_ficha(current_user_id, id):
+    """Atualiza os dados de uma ficha existente."""
+    dados = request.get_json()
+    sucesso = atualizar_ficha(id, current_user_id, dados)
+    if sucesso:
+        return jsonify({'sucesso': True, 'mensagem': 'Ficha atualizada com sucesso!'})
+    else:
+        return jsonify({'sucesso': False, 'mensagem': 'Erro ao atualizar ficha ou permissão negada.'}), 404
+        
 @app.route("/api/fichas/<int:id>", methods=['DELETE'])
 @token_required
 def delete_ficha(current_user_id, id):
@@ -119,7 +153,8 @@ def delete_ficha(current_user_id, id):
         return jsonify({'sucesso': True, 'mensagem': 'Ficha apagada com sucesso!'})
     else:
         return jsonify({'sucesso': False, 'mensagem': 'Ficha não encontrada ou permissão negada.'}), 404
-        
+
+# --- Rotas de Salas (Protegidas) ---
 @app.route("/api/salas", methods=['GET'])
 @token_required
 def get_salas(current_user_id):
@@ -132,64 +167,88 @@ def post_nova_sala(current_user_id):
     dados = request.get_json()
     if not dados or 'nome' not in dados:
         return jsonify({'mensagem': 'Nome da sala é obrigatório.'}), 400
-    senha = dados.get('senha', None)
-    nome_sala = dados['nome']
-    sucesso = criar_nova_sala(nome_sala, senha, current_user_id)
+    sucesso = criar_nova_sala(dados['nome'], dados.get('senha'), current_user_id)
     if sucesso:
         return jsonify({'sucesso': True, 'mensagem': 'Sala criada com sucesso!'}), 201
     else:
         return jsonify({'sucesso': False, 'mensagem': 'Nome de sala já existe ou erro ao criar.'}), 409
 
-# --- NOVO ENDPOINT PARA VERIFICAÇÃO DE SENHA DA SALA ---
 @app.route("/api/salas/verificar-senha", methods=['POST'])
-@token_required # Protegido, pois só usuários logados podem tentar entrar.
+@token_required
 def rota_verificar_senha_sala(current_user_id):
-    """Verifica se a senha fornecida para uma sala é válida."""
     dados = request.get_json()
     if not dados or 'sala_id' not in dados or 'senha' not in dados:
         return jsonify({'sucesso': False, 'mensagem': 'Dados incompletos.'}), 400
+    senha_valida = verificar_senha_da_sala(dados['sala_id'], dados['senha'])
+    return jsonify({'sucesso': senha_valida, 'mensagem': 'Senha da sala incorreta.' if not senha_valida else ''})
 
-    sala_id = dados['sala_id']
-    senha = dados['senha']
-
-    # Chama a função do db_manager para fazer a verificação segura.
-    senha_valida = verificar_senha_da_sala(sala_id, senha)
-
-    if senha_valida:
-        # Se a senha for válida, responde com sucesso.
-        return jsonify({'sucesso': True})
-    else:
-        # Se for inválida, responde com erro de não autorizado.
-        return jsonify({'sucesso': False, 'mensagem': 'Senha da sala incorreta.'}), 401
-# --- Gerenciadores de Eventos WebSocket ---
+# --- EVENTOS SOCKET.IO ---
 @socketio.on('connect')
 def handle_connect():
-    print(f"Cliente conectado com WebSocket! ID da sessão: {request.sid}")
+    print(f"Cliente conectado! SID: {request.sid}")
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    print(f"Cliente desconectado do WebSocket! ID da sessão: {request.sid}")
+    print(f"Cliente desconectado! SID: {request.sid}")
 
 @socketio.on('join_room')
 def handle_join_room(data):
-    token = data.get('token')
-    sala_id = data.get('sala_id')
-
-    if not token or not sala_id:
-        send({'error': 'Token ou ID da sala ausente.'})
-        return
-
+    token = data.get('token'); sala_id = data.get('sala_id'); ficha_id = data.get('ficha_id')
+    if not all([token, sala_id, ficha_id]):
+        send({'error': 'Dados para entrar na sala incompletos.'}); return
     try:
         user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-        username = user_data['name']
+        user_id = int(user_data['sub'])
+        ficha_data = buscar_dados_essenciais_ficha(ficha_id, user_id)
+        if not ficha_data:
+            send({'error': 'Ficha não encontrada ou não pertence a você.'}); return
+        nome_personagem = ficha_data['nome_personagem']
         join_room(sala_id)
-        send(f"--- {username} entrou na taverna! ---", to=sala_id)
-        print(f"Usuário '{username}' (ID: {user_data['sub']}) entrou na sala {sala_id}")
+        historico = buscar_historico_chat(sala_id)
+        socketio.emit('chat_history', {'historico': historico}, room=request.sid)
+        mensagem_entrada = f"--- {nome_personagem} entrou na taverna! ---"
+        send(mensagem_entrada, to=sala_id)
+        salvar_mensagem_chat(sala_id, 'Sistema', f"{nome_personagem} entrou na taverna!")
+        print(f"{nome_personagem} (User ID: {user_id}) entrou na sala {sala_id}")
     except Exception as e:
-        print(f"Falha na autenticação para entrar na sala: {e}")
-        send({'error': 'Autenticação falhou.'})
+        print(f"Falha na autenticação: {e}"); send({'error': 'Autenticação falhou.'})
 
-# --- Bloco para Iniciar o Servidor ---
+@socketio.on('send_message')
+def handle_send_message(data):
+    token = data.get('token'); sala_id = data.get('sala_id'); message_text = data.get('message'); ficha_id = data.get('ficha_id')
+    if not all([token, sala_id, message_text, ficha_id]):
+        send({'error': 'Dados da mensagem incompletos.'}); return
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id = int(user_data['sub'])
+        ficha_data = buscar_dados_essenciais_ficha(ficha_id, user_id)
+        if not ficha_data: return
+        nome_personagem = ficha_data['nome_personagem']
+        salvar_mensagem_chat(sala_id, nome_personagem, message_text)
+        formatted_message = f"[{nome_personagem}]: {message_text}"
+        send(formatted_message, to=sala_id)
+    except Exception as e:
+        print(f"Erro ao enviar mensagem: {e}"); send({'error': 'Token inválido.'})
+
+@socketio.on('roll_dice')
+def handle_roll_dice(data):
+    token = data.get('token'); sala_id = data.get('sala_id'); dice_command = data.get('command'); ficha_id = data.get('ficha_id')
+    if not all([token, sala_id, dice_command, ficha_id]):
+        send({'error': 'Dados da rolagem incompletos.'}); return
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id = int(user_data['sub'])
+        ficha_data = buscar_dados_essenciais_ficha(ficha_id, user_id)
+        if not ficha_data: return
+        nome_personagem = ficha_data['nome_personagem']
+        total, rolagens = rolar_dados(dice_command)
+        resultado_str = f"{total} ({', '.join(map(str, rolagens))})" if len(rolagens) > 1 else str(total)
+        mensagem = f"🎲 [{nome_personagem}] rolou {dice_command} e tirou: {resultado_str}"
+        salvar_mensagem_chat(sala_id, 'Sistema', f"[{nome_personagem}] rolou {dice_command} e tirou: {resultado_str}")
+        send(mensagem, to=sala_id)
+    except Exception as e:
+        print(f"Erro ao rolar dados: {e}"); send({'error': 'Token inválido.'})
+
+# --- INICIALIZAÇÃO DO SERVIDOR ---
 if __name__ == "__main__":
-    # Usamos 'socketio.run()' para iniciar o servidor com o motor correto (eventlet).
     socketio.run(app, debug=True, port=5001)

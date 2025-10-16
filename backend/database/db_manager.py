@@ -5,10 +5,10 @@ import sqlite3
 import os
 import json
 import bcrypt
-from core.monstro import Monstro
+# CORREÇÃO: Movido o import para o topo, junto com os outros.
+from core.monstro import Monstro 
 
 # --- LÓGICA DE CAMINHO ABSOLUTO E ROBUSTO ---
-# Garante que o caminho para o banco de dados seja sempre encontrado corretamente.
 script_dir = os.path.dirname(os.path.abspath(__file__))
 NOME_DB = os.path.join(script_dir, 'campanhas.db')
 
@@ -88,19 +88,35 @@ def buscar_fichas_por_usuario(usuario_id):
     """Busca todas as fichas de personagem que pertencem a um ID de usuário específico."""
     try:
         with sqlite3.connect(NOME_DB) as conexao:
-            # Configura a conexão para retornar linhas que se comportam como dicionários.
             conexao.row_factory = sqlite3.Row 
             cursor = conexao.cursor()
             cursor.execute(
                 "SELECT id, nome_personagem, classe, nivel FROM fichas_personagem WHERE usuario_id = ?",
                 (usuario_id,)
             )
-            # Converte os resultados da 'Row factory' em dicionários Python padrão.
             fichas = [dict(row) for row in cursor.fetchall()]
-        return fichas
+            return fichas
     except Exception as e:
         print(f"Erro ao buscar fichas por usuário: {e}")
         return []
+
+def buscar_ficha_por_id(ficha_id, usuario_id):
+    """Busca os detalhes completos de uma única ficha, verificando a posse."""
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            conexao.row_factory = sqlite3.Row
+            cursor = conexao.cursor()
+            cursor.execute(
+                "SELECT * FROM fichas_personagem WHERE id = ? AND usuario_id = ?",
+                (ficha_id, usuario_id)
+            )
+            ficha = cursor.fetchone()
+            if ficha:
+                return dict(ficha) # Retorna a ficha como um dicionário.
+            return None # Retorna None se não encontrar.
+    except Exception as e:
+        print(f"Erro ao buscar ficha por ID: {e}")
+        return None
 
 # --- Funções de Autenticação e Usuário ---
 
@@ -122,6 +138,9 @@ def registrar_novo_usuario(nome_usuario, senha_texto_puro):
         print(f"Erro ao registrar novo usuário: {e}")
         return False
 
+# --- CORREÇÃO DE INDENTAÇÃO ---
+# Esta função estava indentada dentro de 'registrar_novo_usuario'.
+# Foi movida para o nível principal (sem recuo).
 def verificar_login(nome_usuario, senha_texto_puro):
     """Verifica se o usuário existe e a senha está correta. Retorna o ID do usuário ou None."""
     try:
@@ -165,35 +184,13 @@ def criar_nova_ficha(usuario_id, nome_personagem, classe, raca, antecedente, atr
         print(f"Erro ao criar nova ficha: {e}")
         return False
 
-def buscar_ficha_por_id(ficha_id, usuario_id):
-    """Busca os detalhes completos de uma única ficha, verificando a posse."""
-    try:
-        with sqlite3.connect(NOME_DB) as conexao:
-            conexao.row_factory = sqlite3.Row
-            cursor = conexao.cursor()
-            # Buscamos a ficha pelo seu ID E garantimos que ela pertence ao usuário logado.
-            cursor.execute(
-                "SELECT * FROM fichas_personagem WHERE id = ? AND usuario_id = ?",
-                (ficha_id, usuario_id)
-            )
-            ficha = cursor.fetchone()
-            if ficha:
-                return dict(ficha) # Retorna a ficha como um dicionário.
-            return None # Retorna None se não encontrar.
-    except Exception as e:
-        print(f"Erro ao buscar ficha por ID: {e}")
-        return None
-
 def atualizar_ficha(ficha_id, usuario_id, novos_dados):
     """Atualiza os dados de uma ficha existente no banco de dados."""
     try:
-        # Converte os dados complexos para JSON.
         atributos_str_json = json.dumps(novos_dados['atributos'])
         pericias_str_json = json.dumps(novos_dados['pericias'])
-
         with sqlite3.connect(NOME_DB) as conexao:
             cursor = conexao.cursor()
-            # O comando UPDATE modifica uma linha existente.
             cursor.execute("""
                 UPDATE fichas_personagem 
                 SET nome_personagem = ?, classe = ?, raca = ?, antecedente = ?, 
@@ -205,53 +202,40 @@ def atualizar_ficha(ficha_id, usuario_id, novos_dados):
                 pericias_str_json, ficha_id, usuario_id
             ))
             if cursor.rowcount == 0:
-                return False # Nenhuma linha foi atualizada (ficha não encontrada ou não pertence ao usuário).
-        return True # Sucesso.
+                return False
+        return True
     except Exception as e:
         print(f"Erro ao atualizar ficha: {e}")
         return False
-    
-    # --- NOVA FUNÇÃO PARA VERIFICAR SENHA DA SALA ---
-def verificar_senha_da_sala(sala_id, senha_texto_puro):
-    """Verifica se a senha fornecida para uma sala corresponde ao hash no DB."""
+
+# --- CORREÇÃO DE INDENTAÇÃO ---
+# Esta função estava indentada dentro de 'buscar_historico_chat'.
+# Foi movida para o nível principal (sem recuo).
+def apagar_ficha(ficha_id, usuario_id):
+    """Apaga uma ficha do banco de dados, verificando se pertence ao usuário correto."""
     try:
         with sqlite3.connect(NOME_DB) as conexao:
             cursor = conexao.cursor()
-            # Busca apenas o hash da senha da sala específica.
             cursor.execute(
-                "SELECT senha_hash FROM salas WHERE id = ?",
-                (sala_id,)
+                "DELETE FROM fichas_personagem WHERE id = ? AND usuario_id = ?",
+                (ficha_id, usuario_id)
             )
-            resultado = cursor.fetchone()
-
-        # Se não encontrar a sala, ou se a sala não tiver senha (for pública).
-        if not resultado or not resultado[0]:
-            return False # Não deveria acontecer para uma sala privada, mas é uma segurança.
-
-        senha_hash_db = resultado[0]
-        senha_bytes = senha_texto_puro.encode('utf-8')
-
-        # Usa bcrypt para comparar a senha fornecida com o hash.
-        if bcrypt.checkpw(senha_bytes, senha_hash_db):
-            return True # Senha correta!
-        else:
-            return False # Senha incorreta.
-            
+            if cursor.rowcount == 0:
+                return False
+        return True
     except Exception as e:
-        print(f"Erro ao verificar senha da sala: {e}")
+        print(f"Erro ao apagar ficha: {e}")
         return False
-    
-    # --- NOVAS FUNÇÕES DE GERENCIAMENTO DE SALAS ---
+
+# --- Funções de Gerenciamento de Salas ---
 
 def criar_nova_sala(nome_sala, senha, mestre_id):
     """Cria uma nova sala de campanha no banco de dados."""
     try:
         senha_hash = None
-        # Se uma senha foi fornecida, criamos o hash dela.
         if senha:
             senha_bytes = senha.encode('utf-8')
             senha_hash = bcrypt.hashpw(senha_bytes, bcrypt.gensalt())
-
         with sqlite3.connect(NOME_DB) as conexao:
             cursor = conexao.cursor()
             cursor.execute(
@@ -259,7 +243,7 @@ def criar_nova_sala(nome_sala, senha, mestre_id):
                 (nome_sala, senha_hash, mestre_id)
             )
         return True
-    except sqlite3.IntegrityError: # Ocorre se o nome da sala já existir
+    except sqlite3.IntegrityError:
         return False
     except Exception as e:
         print(f"Erro ao criar nova sala: {e}")
@@ -271,36 +255,85 @@ def listar_salas_disponiveis():
         with sqlite3.connect(NOME_DB) as conexao:
             conexao.row_factory = sqlite3.Row
             cursor = conexao.cursor()
-            # Esta é uma consulta SQL com JOIN!
-            # Ela junta a tabela 'salas' com a tabela 'usuarios' usando o 'mestre_id'
-            # para que possamos pegar o nome do mestre em vez de apenas seu ID.
             cursor.execute("""
                 SELECT s.id, s.nome, u.nome_usuario as mestre_nome, s.senha_hash IS NOT NULL as tem_senha
                 FROM salas s
                 JOIN usuarios u ON s.mestre_id = u.id
             """)
             salas = [dict(row) for row in cursor.fetchall()]
-        return salas
+            return salas
     except Exception as e:
         print(f"Erro ao listar salas: {e}")
         return []
-# A indentação desta função foi corrigida. Ela agora está no nível principal do arquivo.
-def apagar_ficha(ficha_id, usuario_id):
-    """Apaga uma ficha do banco de dados, verificando se pertence ao usuário correto."""
+
+def verificar_senha_da_sala(sala_id, senha_texto_puro):
+    """Verifica se a senha fornecida para uma sala corresponde ao hash no DB."""
     try:
         with sqlite3.connect(NOME_DB) as conexao:
             cursor = conexao.cursor()
-            # O comando DELETE remove linhas de uma tabela.
-            # A cláusula WHERE é crucial para apagar a ficha com o ID correto E que pertença ao usuário correto.
             cursor.execute(
-                "DELETE FROM fichas_personagem WHERE id = ? AND usuario_id = ?",
+                "SELECT senha_hash FROM salas WHERE id = ?",
+                (sala_id,)
+            )
+            resultado = cursor.fetchone()
+        if not resultado or not resultado[0]:
+            return False
+        senha_hash_db = resultado[0]
+        senha_bytes = senha_texto_puro.encode('utf-8')
+        if bcrypt.checkpw(senha_bytes, senha_hash_db):
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(f"Erro ao verificar senha da sala: {e}")
+        return False
+        
+        # --- NOVA FUNÇÃO PARA BUSCAR NOME DA FICHA ---
+def buscar_dados_essenciais_ficha(ficha_id, usuario_id):
+    """Busca o nome e a classe de uma ficha específica, verificando a posse."""
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            conexao.row_factory = sqlite3.Row
+            cursor = conexao.cursor()
+            cursor.execute(
+                "SELECT nome_personagem, classe FROM fichas_personagem WHERE id = ? AND usuario_id = ?",
                 (ficha_id, usuario_id)
             )
-            # 'cursor.rowcount' informa quantas linhas foram afetadas. Se for 1, a exclusão deu certo.
-            if cursor.rowcount == 0:
-                # Se for 0, a ficha não foi encontrada ou não pertencia ao usuário (falha de segurança).
-                return False
-        return True # Sucesso na exclusão.
+            ficha = cursor.fetchone()
+            if ficha:
+                return dict(ficha)
+            return None
     except Exception as e:
-        print(f"Erro ao apagar ficha: {e}")
+        print(f"Erro ao buscar dados essenciais da ficha: {e}")
+        return None
+    
+# --- Funções para Histórico de Chat ---
+
+def salvar_mensagem_chat(sala_id, remetente, mensagem):
+    """Salva uma nova mensagem no histórico da sala."""
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            cursor.execute(
+                "INSERT INTO historico_chat (sala_id, remetente, mensagem) VALUES (?, ?, ?)",
+                (sala_id, remetente, mensagem)
+            )
+        return True
+    except Exception as e:
+        print(f"Erro ao salvar mensagem do chat: {e}")
         return False
+
+def buscar_historico_chat(sala_id):
+    """Busca todas as mensagens do histórico de uma sala."""
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            cursor.execute(
+                "SELECT remetente, mensagem FROM historico_chat WHERE sala_id = ? ORDER BY timestamp ASC",
+                (sala_id,)
+            )
+            historico = [f"[{remetente}]: {mensagem}" for remetente, mensagem in cursor.fetchall()]
+            return historico
+    except Exception as e:
+        print(f"Erro ao buscar histórico do chat: {e}")
+        return []

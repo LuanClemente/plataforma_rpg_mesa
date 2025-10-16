@@ -73,6 +73,20 @@ CREATE TABLE usuarios (
 """)
 print("Tabela 'usuarios' criada com sucesso!")
 
+# --- TABELA: historico_chat ---
+# Armazena todas as mensagens e eventos de cada sala.
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS historico_chat (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sala_id INTEGER NOT NULL,
+    remetente TEXT NOT NULL,
+    mensagem TEXT NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sala_id) REFERENCES salas (id)
+);
+""")
+print("Tabela 'historico_chat' verificada/criada com sucesso!")
+
 # --- Tabela: fichas_personagem (COM A COLUNA FALTANDO ADICIONADA) ---
 cursor.execute("""
 CREATE TABLE fichas_personagem (
