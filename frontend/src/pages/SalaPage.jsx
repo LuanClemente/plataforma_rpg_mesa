@@ -11,44 +11,60 @@ import InGameFicha from '../components/InGameFicha';
 import Anotacoes from '../components/Anotacoes';
 import InventarioSala from '../components/InventarioSala';
 import ChatMessage from '../components/ChatMessage';
+import MestrePanel from '../components/MestrePanel'; // Importa o painel do Mestre.
 
 function SalaPage() {
   // ------------------- ESTADOS & REFS -------------------
-  const { id: salaId } = useParams();
+  const { id: salaId } = useParams(); // Pega o ID da sala da URL.
   const { fetchWithAuth } = useAuth(); // Função de fetch com autenticação.
 
-  const [messages, setMessages] = useState([]);      // Histórico e novas mensagens do chat.
-  const [newMessage, setNewMessage] = useState('');      // Texto digitado no chat.
-  const [diceCommand, setDiceCommand] = useState('1d20');  // Comando de rolagem de dados.
-  const [fichaAtiva, setFichaAtiva] = useState(null);      // Dados da ficha ativa do jogador.
-  const [feedback, setFeedback] = useState('');          // NOVO: Mensagem de feedback para o salvamento da ficha.
-  const socketRef = useRef(null);                   // Mantém a instância do socket viva.
+  const [messages, setMessages] = useState([]);      // Guarda o histórico e novas mensagens do chat.
+  const [newMessage, setNewMessage] = useState('');      // Guarda o texto da caixa de chat.
+  const [diceCommand, setDiceCommand] = useState('1d20');  // Guarda o comando de rolagem de dados.
+  const [fichaAtiva, setFichaAtiva] = useState(null);      // Guarda os dados da ficha ativa do jogador.
+  const [feedback, setFeedback] = useState('');          // Guarda mensagens de feedback (ex: "Ficha salva!").
+  const [isMestre, setIsMestre] = useState(false);        // Guarda se o usuário atual é o Mestre da sala.
+  
+  const socketRef = useRef(null);                   // Mantém a instância do socket viva entre renderizações.
 
   // ------------------- CONEXÃO SOCKET.IO -------------------
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const fichaId = sessionStorage.getItem('selectedFichaId');
+
     if (!fichaId) {
-      setMessages(prev => [...prev, 'ERRO: Nenhum personagem foi selecionado.']);
-      return;
+      setMessages(prev => [...prev, 'ERRO: Nenhum personagem foi selecionado. Por favor, volte e entre na sala novamente.']);
+      return; // Interrompe a conexão se não houver ficha.
     }
     
+    // Conecta-se ao servidor backend via WebSocket.
     const socket = io('http://127.0.0.1:5001');
     socketRef.current = socket;
 
+    // Evento 'connect': Dispara quando a conexão é estabelecida.
     socket.on('connect', () => {
       console.log('✅ Conectado ao servidor WebSocket');
+      // Emite o evento 'join_room', enviando o token e o ID da ficha.
       socket.emit('join_room', { token, sala_id: salaId, ficha_id: fichaId });
     });
 
+    // Evento 'chat_history': Ouve pelo histórico enviado pelo servidor.
     socket.on('chat_history', (data) => {
       setMessages(data.historico || []);
     });
 
+    // Evento 'message': Ouve por novas mensagens em tempo real.
     socket.on('message', (data) => {
       setMessages(prev => [...prev, data]);
     });
+    
+    // Evento 'status_mestre': Ouve pelo "sinal secreto" do servidor.
+    socket.on('status_mestre', (data) => {
+      console.log('Status de Mestre recebido:', data.isMestre);
+      setIsMestre(data.isMestre); // Atualiza o estado para mostrar/esconder o painel do Mestre.
+    });
 
+    // Função de Limpeza: É executada quando o usuário sai da página.
     return () => {
       console.log('🔌 Desconectando do WebSocket...');
       socket.disconnect();
@@ -84,7 +100,7 @@ function SalaPage() {
     buscarFicha();
   }, [salaId, fetchWithAuth]); // Roda se a sala (ou a função de fetch) mudar.
 
-  // ------------------- ENVIO DE MENSAGEM -------------------
+  // ------------------- FUNÇÕES DE LÓGICA (HANDLERS) -------------------
   const handleSendMessage = (event) => {
     event.preventDefault();
     if (newMessage.trim() === '') return;
@@ -92,14 +108,11 @@ function SalaPage() {
     if (socket) {
       const token = localStorage.getItem('authToken');
       const fichaId = sessionStorage.getItem('selectedFichaId');
-      socket.emit('send_message', {
-        token, sala_id: salaId, message: newMessage, ficha_id: fichaId
-      });
+      socket.emit('send_message', { token, sala_id: salaId, message: newMessage, ficha_id: fichaId });
       setNewMessage('');
     }
   };
 
-  // ------------------- ROLAGEM DE DADOS -------------------
   const handleRollDice = (event) => {
     event.preventDefault();
     if (diceCommand.trim() === '') return;
@@ -107,60 +120,38 @@ function SalaPage() {
     if (socket) {
       const token = localStorage.getItem('authToken');
       const fichaId = sessionStorage.getItem('selectedFichaId');
-      socket.emit('roll_dice', {
-        token, sala_id: salaId, command: diceCommand, ficha_id: fichaId
-      });
+      socket.emit('roll_dice', { token, sala_id: salaId, command: diceCommand, ficha_id: fichaId });
     }
   };
 
-  // --- NOVAS FUNÇÕES PARA EDIÇÃO DA FICHA ATIVA ---
-
-  // Chamada pelo componente InGameFicha quando clicamos em + ou - em um atributo.
+  // Chamada pelo InGameFicha quando clicamos em + ou - em um atributo.
   const handleAttributeChange = (atributo, delta) => {
-    // Atualiza o estado 'fichaAtiva' localmente no React.
     setFichaAtiva(prevFicha => {
-      if (!prevFicha) return null; // Segurança
+      if (!prevFicha) return null;
       const novoValor = (prevFicha.atributos[atributo] || 0) + delta;
-      return {
-        ...prevFicha, // Copia todos os dados da ficha
-        atributos: {
-          ...prevFicha.atributos, // Copia todos os outros atributos
-          [atributo]: novoValor // Atualiza o atributo específico
-        }
-      };
+      return { ...prevFicha, atributos: { ...prevFicha.atributos, [atributo]: novoValor }};
     });
   };
 
   // Chamada pelo InGameFicha quando adicionamos uma nova perícia.
   const handleSkillAdd = (novaPericia) => {
     setFichaAtiva(prevFicha => {
-      if (!prevFicha || prevFicha.pericias.includes(novaPericia)) {
-        return prevFicha; // Não faz nada se a perícia já existir.
-      }
-      return {
-        ...prevFicha,
-        pericias: [...prevFicha.pericias, novaPericia] // Adiciona a nova perícia à lista.
-      };
+      if (!prevFicha || prevFicha.pericias.includes(novaPericia)) return prevFicha;
+      return { ...prevFicha, pericias: [...prevFicha.pericias, novaPericia] };
     });
   };
 
   // Chamada pelo InGameFicha quando clicamos em "Salvar Ficha".
   const handleSaveFicha = async () => {
-    if (!fichaAtiva) return; // Segurança
+    if (!fichaAtiva) return;
     setFeedback('Salvando...');
     try {
-      // Usa nossa rota PUT que já existe no backend!
       const response = await fetchWithAuth(`http://127.0.0.1:5001/api/fichas/${fichaAtiva.id}`, {
         method: 'PUT',
-        body: JSON.stringify(fichaAtiva), // Envia o objeto 'fichaAtiva' inteiro e atualizado.
+        body: JSON.stringify(fichaAtiva),
       });
       const data = await response.json();
-      if (response.ok) {
-        setFeedback('Ficha salva com sucesso!');
-      } else {
-        setFeedback(data.mensagem || 'Erro ao salvar.');
-      }
-      // Limpa a mensagem de feedback após 2 segundos.
+      setFeedback(data.mensagem || 'Ficha salva!');
       setTimeout(() => setFeedback(''), 2000);
     } catch (error) {
       setFeedback('Erro de conexão ao salvar.');
@@ -174,6 +165,8 @@ function SalaPage() {
       {/* ----------- COLUNA ESQUERDA (Anotações) ----------- */}
       <div className="sala-coluna-anotacoes">
         <Anotacoes />
+        {/* Renderização Condicional: O Painel do Mestre SÓ aparece se 'isMestre' for true. */}
+        {isMestre && <MestrePanel socket={socketRef.current} salaId={salaId} />}
       </div>
 
       {/* ----------- COLUNA BOLSA DE ITENS ----------- */}
@@ -183,14 +176,12 @@ function SalaPage() {
 
       {/* ----------- COLUNA CENTRAL (Ficha e Dados) ----------- */}
       <div className="sala-coluna-ficha">
-        {/* Passamos as novas funções como 'props' para o componente da ficha */}
         <InGameFicha 
           ficha={fichaAtiva} 
           onAttributeChange={handleAttributeChange}
           onSkillAdd={handleSkillAdd}
           onSave={handleSaveFicha}
         />
-        {/* Exibe o feedback de salvamento */}
         {feedback && <p className="feedback-message" style={{textAlign: 'center'}}>{feedback}</p>}
 
         <div className="sala-actions-container">

@@ -653,3 +653,24 @@ body.login-page-body #root {
   cursor: pointer;
   padding: 0 0.8rem;
 }
+/* --- ESTILOS DO PAINEL DO MESTRE --- */
+.mestre-panel-container {
+  background-color: rgba(60, 40, 40, 0.8); /* Um fundo vermelho-escuro para destacar */
+  border: 1px solid #c59d5f;
+  border-radius: 8px;
+  padding: 1rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+.mestre-panel-container h2 {
+  border-bottom: 1px solid #c59d5f;
+  margin-top: 0;
+  color: #ff8a8a; /* Cor de destaque para o Mestre */
+}
+.mestre-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}

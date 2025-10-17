@@ -8,6 +8,7 @@ from functools import wraps
 import jwt
 from datetime import datetime, timedelta, timezone
 import json
+from database.db_manager import buscar_mestre_da_sala
 
 # --- IMPORTS DE MÓDULOS INTERNOS ---
 # Importações do nosso projeto, agora em um bloco único e organizado.
@@ -29,7 +30,6 @@ from database.db_manager import (
     buscar_dados_essenciais_ficha,
     buscar_anotacoes,
     salvar_anotacoes,
-    # --- NOVAS FUNÇÕES IMPORTADAS ---
     buscar_inventario_sala,
     adicionar_item_sala,
     apagar_item_sala
@@ -281,6 +281,9 @@ def handle_join_room(data):
     user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
     user_id = int(user_data['sub'])
     ficha_data = buscar_dados_essenciais_ficha(ficha_id, user_id)
+    mestre_id = buscar_mestre_da_sala(sala_id)
+    is_mestre = (user_id == mestre_id)
+    socketio.emit('status_mestre', {'isMestre': is_mestre}, room=request.sid)
     if not ficha_data:
       send({'error': 'Ficha não encontrada ou não pertence a você.'}); return
     nome_personagem = ficha_data['nome_personagem']

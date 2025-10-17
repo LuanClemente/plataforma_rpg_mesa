@@ -183,6 +183,22 @@ def criar_nova_ficha(usuario_id, nome_personagem, classe, raca, antecedente, atr
     except Exception as e:
         print(f"Erro ao criar nova ficha: {e}")
         return False
+    
+    # --- NOVA FUNÇÃO PARA VERIFICAR O MESTRE ---
+def buscar_mestre_da_sala(sala_id):
+    """Busca o ID do usuário que é o Mestre de uma sala específica."""
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            cursor.execute(
+                "SELECT mestre_id FROM salas WHERE id = ?",
+                (sala_id,)
+            )
+            resultado = cursor.fetchone()
+            return resultado[0] if resultado else None
+    except Exception as e:
+        print(f"Erro ao buscar mestre da sala: {e}")
+        return None
 
 def atualizar_ficha(ficha_id, usuario_id, novos_dados):
     """Atualiza os dados de uma ficha existente no banco de dados."""
