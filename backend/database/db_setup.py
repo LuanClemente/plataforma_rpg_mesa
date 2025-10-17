@@ -87,6 +87,22 @@ CREATE TABLE IF NOT EXISTS historico_chat (
 """)
 print("Tabela 'historico_chat' verificada/criada com sucesso!")
 
+
+# --- NOVA TABELA: anotacoes_jogador ---
+# Armazena as anotações pessoais de cada jogador para cada sala.
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS anotacoes_jogador (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario_id INTEGER NOT NULL,
+    sala_id INTEGER NOT NULL,
+    notas TEXT,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios (id),
+    FOREIGN KEY (sala_id) REFERENCES salas (id),
+    UNIQUE(usuario_id, sala_id) -- Garante que um jogador só tenha um 'bloco de notas' por sala.
+);
+""")
+print("Tabela 'anotacoes_jogador' verificada/criada com sucesso!")
+
 # --- Tabela: fichas_personagem (COM A COLUNA FALTANDO ADICIONADA) ---
 cursor.execute("""
 CREATE TABLE fichas_personagem (
@@ -103,6 +119,21 @@ CREATE TABLE fichas_personagem (
 );
 """)
 print("Tabela 'fichas_personagem' criada com sucesso!")
+
+# --- NOVA TABELA: inventario_sala ---
+# Armazena os itens que um personagem coleta DENTRO de uma sala/campanha.
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS inventario_sala (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ficha_id INTEGER NOT NULL,
+    sala_id INTEGER NOT NULL,
+    nome_item TEXT NOT NULL,
+    descricao TEXT,
+    FOREIGN KEY (ficha_id) REFERENCES fichas_personagem (id),
+    FOREIGN KEY (sala_id) REFERENCES salas (id)
+);
+""")
+print("Tabela 'inventario_sala' verificada/criada com sucesso!")
 
 # Salva permanentemente todas as alterações no arquivo do banco de dados.
 conexao.commit()

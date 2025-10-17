@@ -4,36 +4,44 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-// 1. Importa nosso novo componente de modal customizado.
+// Importa nossos componentes de modal.
 import PasswordModal from '../components/PasswordModal';
+import CharacterSelectionModal from '../components/CharacterSelectionModal';
 
 function SalasPage() {
   // --- Estados do Componente ---
   const navigate = useNavigate();
   const { fetchWithAuth } = useAuth();
   
-  const [salas, setSalas] = useState([]);
-  const [novaSalaNome, setNovaSalaNome] = useState('');
-  const [novaSalaSenha, setNovaSalaSenha] = useState('');
-  const [mensagem, setMensagem] = useState('');
+  const [salas, setSalas] = useState([]); // Guarda a lista de salas.
+  const [fichas, setFichas] = useState([]); // Guarda a lista de fichas do usuário.
+  const [novaSalaNome, setNovaSalaNome] = useState(''); // Controla o campo de nome da nova sala.
+  const [novaSalaSenha, setNovaSalaSenha] = useState(''); // Controla o campo de senha da nova sala.
+  const [mensagem, setMensagem] = useState(''); // Guarda mensagens de feedback.
 
-  // --- Novos estados para controlar o modal ---
-  const [isModalOpen, setIsModalOpen] = useState(false); // Controla se o modal está visível.
-  const [selectedSala, setSelectedSala] = useState(null); // Guarda a sala que o usuário tentou entrar.
-  
+  // Estados para controlar os modais.
+  const [isCharModalOpen, setIsCharModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [selectedSala, setSelectedSala] = useState(null);
+
   // --- Funções de Lógica ---
   
-  // Função para buscar a lista de salas disponíveis na API.
-  const buscarSalas = async () => {
-    try {
-      const response = await fetchWithAuth('http://127.0.0.1:5001/api/salas');
-      const data = await response.json();
-      if (response.ok) { setSalas(data); } else { setMensagem(data.mensagem || "Erro ao buscar salas."); }
-    } catch (error) { setMensagem("Erro de conexão ao buscar salas."); }
-  };
-
-  // useEffect para buscar as salas uma vez quando a página carrega.
-  useEffect(() => { buscarSalas(); }, []);
+  // useEffect para buscar os dados iniciais (salas e fichas) quando a página carrega.
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [salasRes, fichasRes] = await Promise.all([
+          fetchWithAuth('http://127.0.0.1:5001/api/salas'),
+          fetchWithAuth('http://127.0.0.1:5001/api/fichas')
+        ]);
+        if (salasRes.ok) setSalas(await salasRes.json());
+        if (fichasRes.ok) setFichas(await fichasRes.json());
+      } catch (error) {
+        setMensagem("Erro de conexão ao carregar dados da página.");
+      }
+    };
+    fetchData();
+  }, [fetchWithAuth]);
 
   // useEffect para gerenciar o fundo temático da página.
   useEffect(() => {
@@ -41,7 +49,7 @@ function SalasPage() {
     return () => { document.body.classList.remove('salas-page-body'); };
   }, []);
 
-  // Função para criar uma nova sala.
+  // Função para criar uma nova sala, chamada pelo formulário.
   const handleCriarSala = async (event) => {
     event.preventDefault();
     setMensagem('Criando sala...');
@@ -55,43 +63,46 @@ function SalasPage() {
       if (response.ok) {
         setNovaSalaNome('');
         setNovaSalaSenha('');
-        buscarSalas();
+        // Após criar, busca a lista de salas novamente para atualizar a tela.
+        const salasRes = await fetchWithAuth('http://127.0.0.1:5001/api/salas');
+        if (salasRes.ok) setSalas(await salasRes.json());
       }
     } catch (error) { setMensagem("Erro de conexão ao criar sala."); }
   };
 
-  // --- FUNÇÃO ATUALIZADA PARA USAR O MODAL ---
+  // --- FLUXO PARA ENTRAR NA SALA ---
+
+  // 1. Chamado ao clicar no botão "Entrar". Abre o modal de seleção de personagem.
   const handleEntrarSalaClick = (sala) => {
-    // Se a sala NÃO tem senha, navega diretamente.
-    if (!sala.tem_senha) {
-      navigate(`/salas/${sala.id}`);
-      return;
-    }
-    // Se a sala TEM senha, em vez de um prompt, nós guardamos a sala selecionada...
     setSelectedSala(sala);
-    // ...e abrimos o nosso modal customizado.
-    setIsModalOpen(true);
+    setIsCharModalOpen(true);
   };
 
-  // --- NOVA FUNÇÃO PARA PROCESSAR A SENHA DO MODAL ---
-  const handleModalSubmit = async (senhaDigitada) => {
-    // Se não houver uma sala selecionada, não faz nada (segurança).
-    if (!selectedSala) return;
+  // 2. Chamado QUANDO um personagem é selecionado no modal.
+  const handleCharacterSelect = (ficha) => {
+    setIsCharModalOpen(false);
+    sessionStorage.setItem('selectedFichaId', ficha.id);
 
+    if (selectedSala.tem_senha) {
+      setIsPasswordModalOpen(true); // Se a sala tem senha, abre o modal de senha.
+    } else {
+      navigate(`/salas/${selectedSala.id}`); // Se for pública, entra direto.
+    }
+  };
+
+  // 3. Chamado QUANDO a senha é submetida no modal de senha.
+  const handlePasswordSubmit = async (senhaDigitada) => {
+    if (!selectedSala) return;
     try {
-      // Verifica a senha com o backend.
       const response = await fetchWithAuth('http://127.0.0.1:5001/api/salas/verificar-senha', {
         method: 'POST',
         body: JSON.stringify({ sala_id: selectedSala.id, senha: senhaDigitada }),
       });
       const data = await response.json();
-
       if (data.sucesso) {
-        // Se a senha estiver correta, fecha o modal e navega para a página da sala.
-        setIsModalOpen(false);
+        setIsPasswordModalOpen(false);
         navigate(`/salas/${selectedSala.id}`);
       } else {
-        // Se estiver incorreta, mostra um alerta para o usuário.
         alert(data.mensagem || "Senha incorreta.");
       }
     } catch (error) {
@@ -99,17 +110,34 @@ function SalasPage() {
     }
   };
 
-  // --- Renderização do Componente (a parte visual) ---
+  // --- Renderização do Componente ---
   return (
     <div>
       <h1>Salas de Campanha</h1>
 
-      {/* Seção para Criar uma Nova Sala */}
+      {/* --- SEÇÃO PARA CRIAR UMA NOVA SALA (RE-ADICIONADA) --- */}
       <div className="login-container" style={{ maxWidth: '600px', marginBottom: '2rem' }}>
         <h2>Fundar uma Nova Taverna</h2>
         <form onSubmit={handleCriarSala} className="login-form">
-          <div className="form-group"><label htmlFor="novaSalaNome">Nome da Campanha</label><input type="text" id="novaSalaNome" value={novaSalaNome} onChange={(e) => setNovaSalaNome(e.target.value)} required /></div>
-          <div className="form-group"><label htmlFor="novaSalaSenha">Senha (opcional)</label><input type="password" id="novaSalaSenha" value={novaSalaSenha} onChange={(e) => setNovaSalaSenha(e.target.value)} /></div>
+          <div className="form-group">
+            <label htmlFor="novaSalaNome">Nome da Campanha</label>
+            <input 
+              type="text" 
+              id="novaSalaNome" 
+              value={novaSalaNome}
+              onChange={(e) => setNovaSalaNome(e.target.value)}
+              required 
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="novaSalaSenha">Senha (opcional)</label>
+            <input 
+              type="password" 
+              id="novaSalaSenha" 
+              value={novaSalaSenha}
+              onChange={(e) => setNovaSalaSenha(e.target.value)}
+            />
+          </div>
           <button type="submit" className="login-button">Criar Sala</button>
         </form>
         {mensagem && <p className="feedback-message">{mensagem}</p>}
@@ -125,7 +153,6 @@ function SalasPage() {
               <p>Mestre: {sala.mestre_nome}</p>
               <p>{sala.tem_senha ? 'Sala Privada 🔒' : 'Sala Pública'}</p>
               <div className="card-actions">
-                {/* O onClick agora chama nossa nova função que controla o modal */}
                 <button 
                   className="edit-button" 
                   onClick={() => handleEntrarSalaClick(sala)}
@@ -135,15 +162,23 @@ function SalasPage() {
               </div>
             </div>
           ))
-        ) : ( <p>Nenhuma taverna aberta no momento. Que tal criar a sua?</p> )}
+        ) : (
+          <p>Nenhuma taverna aberta no momento. Que tal criar a sua?</p>
+        )}
       </div>
       
-      {/* --- RENDERIZAÇÃO CONDICIONAL DO NOSSO MODAL --- */}
-      {/* O modal só é renderizado no HTML se 'isModalOpen' for true. */}
+      {/* Renderização condicional dos nossos modais */}
+      <CharacterSelectionModal
+        isOpen={isCharModalOpen}
+        onClose={() => setIsCharModalOpen(false)}
+        fichas={fichas}
+        onSelect={handleCharacterSelect}
+      />
+      
       <PasswordModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)} // Função para fechar o modal.
-        onSubmit={handleModalSubmit} // Função para ser chamada quando a senha é confirmada.
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        onSubmit={handlePasswordSubmit}
       />
     </div>
   );

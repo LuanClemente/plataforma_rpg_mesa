@@ -307,6 +307,89 @@ def buscar_dados_essenciais_ficha(ficha_id, usuario_id):
         print(f"Erro ao buscar dados essenciais da ficha: {e}")
         return None
     
+    # --- NOVAS FUNÇÕES PARA ANOTAÇÕES ---
+def buscar_anotacoes(usuario_id, sala_id):
+    """Busca as anotações de um jogador para uma sala específica."""
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            cursor.execute(
+                "SELECT notas FROM anotacoes_jogador WHERE usuario_id = ? AND sala_id = ?",
+                (usuario_id, sala_id)
+            )
+            resultado = cursor.fetchone()
+            # Se não houver anotações, retorna uma string vazia.
+            return resultado[0] if resultado else ""
+    except Exception as e:
+        print(f"Erro ao buscar anotações: {e}")
+        return ""
+
+def salvar_anotacoes(usuario_id, sala_id, notas):
+    """Salva ou atualiza as anotações de um jogador para uma sala."""
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            # 'INSERT OR REPLACE' é um comando SQLite útil:
+            # Ele tenta INSERIR uma nova linha. Se falhar por causa da restrição UNIQUE(usuario_id, sala_id),
+            # ele SUBSTITUI (UPDATE) a linha existente. Perfeito para salvar!
+            cursor.execute(
+                "INSERT OR REPLACE INTO anotacoes_jogador (usuario_id, sala_id, notas) VALUES (?, ?, ?)",
+                (usuario_id, sala_id, notas)
+            )
+        return True
+    except Exception as e:
+        print(f"Erro ao salvar anotações: {e}")
+        return False
+    
+    # --- NOVAS FUNÇÕES PARA INVENTÁRIO DE SALA ---
+
+def buscar_inventario_sala(ficha_id, sala_id):
+    """Busca o inventário de um personagem específico em uma sala específica."""
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            conexao.row_factory = sqlite3.Row
+            cursor = conexao.cursor()
+            cursor.execute(
+                "SELECT id, nome_item, descricao FROM inventario_sala WHERE ficha_id = ? AND sala_id = ?",
+                (ficha_id, sala_id)
+            )
+            itens = [dict(row) for row in cursor.fetchall()]
+            return itens
+    except Exception as e:
+        print(f"Erro ao buscar inventário da sala: {e}")
+        return []
+
+def adicionar_item_sala(ficha_id, sala_id, nome_item, descricao):
+    """Adiciona um novo item ao inventário de um personagem na sala."""
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            cursor.execute(
+                "INSERT INTO inventario_sala (ficha_id, sala_id, nome_item, descricao) VALUES (?, ?, ?, ?)",
+                (ficha_id, sala_id, nome_item, descricao)
+            )
+        return True
+    except Exception as e:
+        print(f"Erro ao adicionar item na sala: {e}")
+        return False
+
+def apagar_item_sala(item_id, ficha_id):
+    """Apaga um item do inventário da sala, verificando a posse."""
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            # Garante que só o dono da ficha possa apagar o item.
+            cursor.execute(
+                "DELETE FROM inventario_sala WHERE id = ? AND ficha_id = ?",
+                (item_id, ficha_id)
+            )
+            if cursor.rowcount == 0:
+                return False # Item não encontrado ou não pertence ao jogador
+        return True
+    except Exception as e:
+        print(f"Erro ao apagar item da sala: {e}")
+        return False
+    
 # --- Funções para Histórico de Chat ---
 
 def salvar_mensagem_chat(sala_id, remetente, mensagem):

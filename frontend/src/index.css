@@ -1,8 +1,6 @@
 /* frontend/src/index.css */
 
 /* --- RESET BÁSICO E ESTILOS GLOBAIS --- */
-
-/* Aplicamos estilos base ao html e body para garantir consistência entre navegadores. */
 html, body {
   margin: 0;
   padding: 0;
@@ -11,16 +9,14 @@ html, body {
   color: #e0e0e0;
 }
 
-/* O fundo padrão para páginas que NÃO têm uma imagem específica. */
 body {
   background-color: #1a1a1a;
 }
 
-/* O container principal da nossa aplicação React, injetado no index.html. */
 #root {
-  min-height: 100vh; /* Garante que o app ocupe pelo menos toda a altura da tela. */
+  min-height: 100vh;
   padding: 2rem;
-  box-sizing: border-box; /* Impede que o padding aumente o tamanho total do elemento. */
+  box-sizing: border-box;
   text-align: center;
 }
 
@@ -39,44 +35,48 @@ h2 {
 
 /* --- ESTILOS DE FUNDO ESPECÍFICOS DAS PÁGINAS --- */
 
-/* Regra comum para todos os fundos de imagem, evitando repetição de código. */
+/* Regra comum para todos os fundos de imagem */
 body.login-page-body,
 body.bestiary-page-body,
 body.fichas-page-body,
 body.edit-ficha-page-body,
-body.salas-page-body {
+body.salas-page-body,
+body.sala-page-body {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
 
-/* Os caminhos foram corrigidos para serem absolutos a partir da pasta 'public', 
-   ou para serem resolvidos corretamente pelo Vite a partir da raiz do 'src'.
-   A forma mais robusta é usar o caminho a partir da raiz do projeto. */
+/* --- CORREÇÃO APLICADA AQUI --- */
+/* Os caminhos foram corrigidos para serem relativos ao 'index.css' (que está em 'src/'). */
+/* Esta é a forma correta de o Vite processar imagens que estão dentro da pasta 'src'. */
 
 body.login-page-body {
-  background-image: url('/src/assets/login_background.png');
+  background-image: url('./assets/login_background.png'); 
 }
 body.bestiary-page-body {
-  background-image: url('/src/assets/bestiary_background.png');
+  background-image: url('./assets/bestiary_background.png'); 
 }
 body.fichas-page-body {
-  background-image: url('/src/assets/fichas_background.png');
+  background-image: url('./assets/fichas_background.png');
 }
 body.edit-ficha-page-body {
-  background-image: url('/src/assets/edit_ficha_background.png');
+  background-image: url('./assets/edit_ficha_background.png');
 }
 body.salas-page-body {
-  background-image: url('/src/assets/salas_background.png');
+  background-image: url('./assets/salas_background.png');
+}
+body.sala-page-body { 
+  background-image: url('./assets/sala-background.png');
 }
 
-/* Layout específico para a página de login para centralizar o formulário verticalmente. */
+/* Layout especial para a página de login */
 body.login-page-body #root {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 0; /* Remove o padding para que o container ocupe a tela toda. */
+  padding: 0;
 }
 
 /* --- NAVEGAÇÃO --- */
@@ -90,29 +90,23 @@ body.login-page-body #root {
   justify-content: center;
   gap: 30px;
 }
-.main-nav a {
+.main-nav a,
+.nav-logout-button {
   color: #c59d5f;
   text-decoration: none;
   font-size: 1.5rem;
   transition: color 0.2s;
-}
-.main-nav a:hover {
-  color: #fff;
-}
-.nav-logout-button {
   background: none;
   border: none;
-  color: #c59d5f;
   font-family: 'MedievalSharp', cursive;
-  font-size: 1.5rem;
   cursor: pointer;
-  transition: color 0.2s;
 }
+.main-nav a:hover,
 .nav-logout-button:hover {
   color: #fff;
 }
 
-/* --- FORMULÁRIOS E OUTROS ESTILOS --- */
+/* --- FORMULÁRIOS GERAIS --- */
 .login-container {
   max-width: 400px;
   margin: 0 auto;
@@ -172,6 +166,8 @@ body.login-page-body #root {
   color: #c59d5f;
   font-weight: bold;
 }
+
+/* --- LISTAS E CARDS (Bestiário, Fichas, Salas) --- */
 .monster-list {
   display: flex;
   flex-wrap: wrap;
@@ -225,6 +221,67 @@ body.login-page-body #root {
 .edit-button:hover, .delete-button:hover {
   background-color: #333;
 }
+
+/* --- MODAL (Senha, Seleção de Personagem) --- */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.modal-content {
+  background-color: #2a2a2a;
+  padding: 2rem;
+  border-radius: 8px;
+  border: 1px solid #c59d5f;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  width: 90%;
+  max-width: 450px;
+  text-align: center;
+}
+.modal-content h2 {
+  border-bottom: none;
+}
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.character-selection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  margin-top: 1rem;
+}
+.character-card {
+  background-color: #1a1a1a;
+  border: 1px solid #444;
+  padding: 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+.character-card:hover {
+  background-color: #333;
+  border-color: #c59d5f;
+}
+.character-card h3 {
+  margin: 0 0 0.5rem 0;
+  color: #c59d5f;
+}
+.character-card p {
+  margin: 0;
+}
+
+/* --- CRIAÇÃO DE FICHA (Avançado) --- */
 .mode-selection {
   display: flex;
   flex-direction: column;
@@ -267,93 +324,332 @@ body.login-page-body #root {
   display: flex;
   align-items: center;
 }
-body.sala-page-body {
-  background-image: url('./assets/sala-background.png'); /* Caminho para sua imagem */
-  background-size: cover; /* Faz a imagem cobrir toda a área */
-  background-position: center center; /* Centraliza a imagem */
-  background-repeat: no-repeat; /* Evita que a imagem se repita */
-  background-attachment: fixed; /* Fixa a imagem, para que ela não role com o conteúdo */
-  min-height: 100vh; /* Garante que o fundo ocupe no mínimo a altura da viewport */
-  margin: 0; /* Remove margens padrão do body */
-  padding: 0; /* Remove paddings padrão do body */
-  overflow-y: auto; /* Permite rolagem se o conteúdo for maior que a tela */
+
+/* --- LAYOUT DA SALA DE JOGO (4 COLUNAS) --- */
+.sala-layout-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1.5fr 1.5fr 2.5fr; /* Anotações, Bolsa, Ficha/Dados, Chat */
+  grid-template-areas: "anotacoes inventario ficha chat";
+  gap: 1.5rem;
+  height: calc(100vh - 10rem); 
+}
+.sala-coluna-anotacoes { grid-area: anotacoes; }
+.sala-coluna-inventario { grid-area: inventario; }
+.sala-coluna-ficha { grid-area: ficha; }
+.sala-coluna-chat { grid-area: chat; }
+
+.sala-coluna-anotacoes,
+.sala-coluna-inventario,
+.sala-coluna-ficha,
+.sala-coluna-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-/* Estilos para o conteúdo dentro da sala para que ele seja legível sobre o fundo */
-body.sala-page-body #root > div > main > div {
-  background-color: rgba(0, 0, 0, 0.7); /* Fundo semi-transparente para o conteúdo */
-  padding: 2rem;
-  border-radius: 8px;
-  color: white; /* Cor do texto para contraste */
-  margin: 2rem auto; /* Centraliza o conteúdo e dá um respiro */
-  max-width: 900px; /* Limita a largura para melhor leitura */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Sombra para destacar o container */
-}
+/* --- PAINÉIS DA SALA DE JOGO --- */
 
-body.sala-page-body h1, 
-body.sala-page-body h2 {
-  color: #f7d08a; /* Uma cor mais vibrante para títulos */
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7); /* Sombra no texto do título */
-}
-
-/* Estilo para o container do chat, para que ele se destaque */
-body.sala-page-body .chat-container {
-  background-color: rgba(29, 29, 29, 0.9); /* Fundo mais escuro para o chat */
+/* Chat (Diário da Aventura) */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%; 
+  background-color: rgba(42, 42, 42, 0.8);
   border: 1px solid #444;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 1rem;
-  margin-top: 1.5rem;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+  box-sizing: border-box;
 }
-
-body.sala-page-body .message-list {
-  max-height: 300px; /* Altura máxima para a lista de mensagens */
-  overflow-y: auto; /* Permite rolagem se muitas mensagens */
+.chat-container h2 {
+  border: none;
+  margin-top: 0;
+}
+.message-list {
+  flex-grow: 1; 
+  overflow-y: auto; 
+  background-color: rgba(10, 10, 10, 0.7);
   border: 1px solid #555;
-  padding: 0.8rem;
   border-radius: 4px;
-  background-color: rgba(10, 10, 10, 0.7); /* Fundo ainda mais escuro para a lista */
+  padding: 0.8rem;
+  text-align: left;
+}
+.message-list p {
+  margin: 0.5rem 0;
+  line-height: 1.4;
+  color: #ccc;
+  word-wrap: break-word;
+}
+.message-list strong {
+  color: #fff;
+  font-weight: bold;
+}
+.chat-form {
+  display: flex;
+  margin-top: 1rem;
+}
+.chat-form input {
+  flex-grow: 1;
+  margin-right: 0.5rem;
+  border-radius: 4px 0 0 4px;
+}
+.chat-form button {
+  font-family: 'MedievalSharp', cursive;
+  font-size: 1rem;
+  padding: 0.8rem 1.5rem;
+  border: 1px solid #c59d5f;
+  background-color: #c59d5f;
+  color: #111;
+  cursor: pointer;
+  border-radius: 0 4px 4px 0;
 }
 
-body.sala-page-body .message-list p {
-  margin-bottom: 0.5rem;
-  line-height: 1.4;
-  color: #ccc; /* Cor do texto das mensagens */
+/* Rolador de Dados */
+.sala-actions-container {
+  background-color: rgba(42, 42, 42, 0.8);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #444;
 }
-/* O fundo semi-transparente que cobre toda a tela */
-.modal-backdrop {
-  position: fixed; /* Fica fixo na tela, mesmo com rolagem */
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.8); /* Cor preta com 80% de opacidade */
+.dice-roller-container h2 {
+  border: none;
+  margin-top: 0;
+}
+.dice-roller-form {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000; /* Garante que o modal fique na frente de todo o resto */
+  gap: 0.5rem;
+}
+.dice-roller-form input {
+  font-family: 'Arial', sans-serif;
+  font-size: 1.2rem;
+  text-align: center;
+  width: 150px;
+  padding: 0.5rem;
+  background-color: #1a1a1a;
+  border: 1px solid #444;
+  color: #e0e0e0;
+  border-radius: 4px;
+}
+.roll-button {
+  font-family: 'MedievalSharp', cursive;
+  font-size: 1.2rem;
+  padding: 0.5rem 2rem;
+  border: none;
+  border-radius: 4px;
+  background-color: #ab4e4e;
+  color: #fff;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+.roll-button:hover {
+  background-color: #c96d6d;
 }
 
-/* A janela do modal em si */
-.modal-content {
-  /* Reutilizamos o estilo do login-container, mas com ajustes */
-  background-color: #2a2a2a;
-  padding: 2rem;
+/* Ficha em Jogo */
+.ficha-in-game-container {
+  background-color: rgba(42, 42, 42, 0.8);
+  border: 1px solid #444;
   border-radius: 8px;
-  border: 1px solid #c59d5f;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-  width: 90%;
-  max-width: 450px;
+  padding: 1rem;
+}
+.ficha-in-game-container h2 {
+  border-bottom: none;
+  margin-top: 0;
+}
+.ficha-in-game-container p {
+  margin: 0.25rem 0;
+}
+.atributos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin: 1rem 0;
   text-align: center;
 }
-
-.modal-content h2 {
-  border-bottom: none;
+.atributo-item {
+  background-color: #1a1a1a;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #555;
+}
+.atributo-nome {
+  display: block;
+  font-size: 0.9rem;
+  color: #c59d5f;
+}
+.atributo-valor {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+.pericias-lista {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0 0;
+  text-align: left;
+  columns: 2;
+  -webkit-columns: 2;
+  -moz-columns: 2;
+}
+.pericias-lista li {
+  padding: 0.25rem 0;
 }
 
-/* Container para os botões de ação do modal */
-.modal-actions {
+/* Anotações */
+.anotacoes-container {
+  background-color: rgba(42, 42, 42, 0.8);
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 1rem;
+  height: 100%;
   display: flex;
-  gap: 1rem;
-  margin-top: 1.5rem;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+.anotacoes-container h2 {
+  border: none;
+  margin-top: 0;
+}
+.anotacoes-container textarea {
+  flex-grow: 1;
+  width: 100%;
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+  border: 1px solid #555;
+  border-radius: 4px;
+  font-family: 'Arial', sans-serif;
+  font-size: 1rem;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  min-height: 300px;
+}
+.anotacoes-status {
+  font-size: 0.9rem;
+  color: #999;
+  text-align: right;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+/* Bolsa de Itens (Inventário) */
+.inventario-container {
+  background-color: rgba(42, 42, 42, 0.8);
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 1rem;
+}
+.inventario-container h2 {
+  border: none;
+  margin-top: 0;
+}
+.inventario-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.inventario-form input {
+  flex-grow: 1;
+  width: 40%;
+}
+.add-item-button {
+  font-family: 'Arial', sans-serif;
+  font-weight: bold;
+  font-size: 1.5rem;
+  padding: 0 1rem;
+  border-radius: 4px;
+  border: 1px solid #c59d5f;
+  background-color: #c59d5f;
+  color: #111;
+  cursor: pointer;
+}
+.inventario-list {
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: rgba(10, 10, 10, 0.7);
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+.inventario-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  border-bottom: 1px solid #333;
+}
+.inventario-item:last-child {
+  border-bottom: none;
+}
+.item-info {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+.item-info small {
+  font-size: 0.8rem;
+  color: #999;
+  font-family: 'Arial', sans-serif;
+}
+.delete-item-button {
+  font-family: 'Arial', sans-serif;
+  font-weight: bold;
+  border-radius: 50%;
+  border: 1px solid #ab4e4e;
+  background-color: #ab4e4e;
+  color: white;
+  width: 25px;
+  height: 25px;
+  cursor: pointer;
+}
+/* --- ESTILOS DA FICHA EM JOGO EDITÁVEL --- */
+.atributo-item-editavel {
+  background-color: #1a1a1a;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #555;
+  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.atributo-item-editavel .atributo-nome {
+  font-size: 0.9rem;
+  color: #c59d5f;
+}
+.atributo-item-editavel .atributo-valor {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+.atributo-item-editavel button {
+  font-family: 'Arial', sans-serif;
+  font-weight: bold;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  border: 1px solid #c59d5f;
+  background-color: #333;
+  color: #c59d5f;
+  cursor: pointer;
+}
+
+.add-skill-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.add-skill-form input {
+  flex-grow: 1;
+}
+.add-skill-form button {
+  font-family: 'Arial', sans-serif;
+  font-weight: bold;
+  font-size: 1.5rem;
+  border-radius: 4px;
+  border: 1px solid #c59d5f;
+  background-color: #c59d5f;
+  color: #111;
+  cursor: pointer;
+  padding: 0 0.8rem;
 }
