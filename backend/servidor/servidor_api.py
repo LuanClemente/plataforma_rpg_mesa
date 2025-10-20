@@ -1,17 +1,25 @@
 # servidor/servidor_api.py
 
 # --- IMPORTS PRINCIPAIS ---
+import sys
+import os
 from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, send, join_room
-from flask_cors import CORS
+from flask_cors import CORS  # Mantido, conforme sua solução funcional.
 from functools import wraps
 import jwt
 from datetime import datetime, timedelta, timezone
 import json
-from database.db_manager import buscar_mestre_da_sala
+
+# --- AJUSTE DE PATH PARA IMPORTAÇÕES ROBUSTAS ---
+# Adiciona a pasta raiz do projeto (plataforma_Rpg_mesa) ao sys.path
+# Isso garante que `from backend.core...` funcione, não importa de onde o script seja executado.
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, project_root)
 
 # --- IMPORTS DE MÓDULOS INTERNOS ---
 # Importações do nosso projeto, agora em um bloco único e organizado.
+# Usamos caminhos relativos ao 'backend' (ex: 'database.') pois executamos o servidor de dentro da pasta 'backend'.
 from database.db_manager import (
     buscar_todos_os_itens, 
     buscar_todos_os_monstros,
@@ -32,8 +40,11 @@ from database.db_manager import (
     salvar_anotacoes,
     buscar_inventario_sala,
     adicionar_item_sala,
-    apagar_item_sala
+    apagar_item_sala,
+    adicionar_xp_e_upar,  
+    buscar_mestre_da_sala  
 )
+from database.db_manager import buscar_jogadores_na_sala # Importa a nova função
 from core.rolador_de_dados import rolar_dados
 
 # --- CONFIGURAÇÃO DO SERVIDOR ---
@@ -198,44 +209,29 @@ def put_anotacoes(current_user_id, sala_id):
     else:
         return jsonify({'sucesso': False, 'mensagem': 'Erro ao salvar anotações.'}), 500
 
-# --- NOVOS ENDPOINTS PARA INVENTÁRIO DE SALA (Protegidos) ---
+# --- Rotas de Inventário de Sala (Protegidas) ---
 @app.route("/api/salas/<int:sala_id>/inventario", methods=['GET'])
 @token_required
 def get_inventario_sala(current_user_id, sala_id):
-    """Busca o inventário de um personagem (baseado na ficha) para esta sala."""
-    # O frontend nos dirá para qual ficha ele quer o inventário.
     ficha_id = request.args.get('ficha_id')
     if not ficha_id:
         return jsonify({'mensagem': 'ID da Ficha ausente na requisição'}), 400
-    
-    # Validação de segurança: o backend verifica se o usuário logado (current_user_id)
-    # é realmente o dono da ficha (ficha_id) que ele está pedindo.
     ficha_valida = buscar_dados_essenciais_ficha(ficha_id, current_user_id)
     if not ficha_valida:
-        return jsonify({'mensagem': 'Permissão negada: esta ficha não é sua.'}), 403 # 403 Forbidden
-
+        return jsonify({'mensagem': 'Permissão negada: esta ficha não é sua.'}), 403
     itens = buscar_inventario_sala(ficha_id, sala_id)
     return jsonify(itens)
 
 @app.route("/api/salas/<int:sala_id>/inventario", methods=['POST'])
 @token_required
 def post_item_sala(current_user_id, sala_id):
-    """Adiciona um item ao inventário de um personagem na sala."""
     dados = request.get_json()
     if not dados or 'ficha_id' not in dados or 'nome_item' not in dados:
         return jsonify({'mensagem': 'Dados do item incompletos'}), 400
-    
-    # Validação de segurança: O dono do token é o dono da ficha?
     ficha_valida = buscar_dados_essenciais_ficha(dados['ficha_id'], current_user_id)
     if not ficha_valida:
         return jsonify({'mensagem': 'Permissão negada.'}), 403
-
-    sucesso = adicionar_item_sala(
-        dados['ficha_id'],
-        sala_id,
-        dados['nome_item'],
-        dados.get('descricao', '') # Descrição é opcional
-    )
+    sucesso = adicionar_item_sala(dados['ficha_id'], sala_id, dados['nome_item'], dados.get('descricao', ''))
     if sucesso:
         return jsonify({'sucesso': True, 'mensagem': 'Item adicionado ao inventário!'}), 201
     else:
@@ -244,95 +240,170 @@ def post_item_sala(current_user_id, sala_id):
 @app.route("/api/inventario-sala/<int:item_id>", methods=['DELETE'])
 @token_required
 def delete_item_sala(current_user_id, item_id):
-    """Apaga um item do inventário da sala."""
     dados = request.get_json()
     ficha_id = dados.get('ficha_id')
     if not ficha_id:
         return jsonify({'mensagem': 'ID da Ficha ausente.'}), 400
-    
-    # Validação de segurança: O dono do token é o dono da ficha?
     ficha_valida = buscar_dados_essenciais_ficha(ficha_id, current_user_id)
     if not ficha_valida:
         return jsonify({'mensagem': 'Permissão negada.'}), 403
-
     sucesso = apagar_item_sala(item_id, ficha_id)
     if sucesso:
         return jsonify({'sucesso': True, 'mensagem': 'Item descartado.'})
     else:
         return jsonify({'sucesso': False, 'mensagem': 'Erro ao descartar item.'}), 404
 
-
 # --- EVENTOS SOCKET.IO ---
-# (Nenhuma alteração aqui, todos os seus eventos estão corretos)
+# (Todas as funções de WebSocket foram movidas para o lugar correto, fora de outras funções)
+
 @socketio.on('connect')
 def handle_connect():
     print(f"Cliente conectado! SID: {request.sid}")
-# ... (outros eventos: disconnect, join_room, send_message, roll_dice) ...
+
 @socketio.on('disconnect')
 def handle_disconnect():
-  print(f"Cliente desconectado do WebSocket! ID da sessão: {request.sid}")
+    print(f"Cliente desconectado! SID: {request.sid}")
 
 @socketio.on('join_room')
 def handle_join_room(data):
-  token = data.get('token'); sala_id = data.get('sala_id'); ficha_id = data.get('ficha_id')
-  if not all([token, sala_id, ficha_id]):
-    send({'error': 'Dados para entrar na sala incompletos.'}); return
-  try:
-    user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-    user_id = int(user_data['sub'])
-    ficha_data = buscar_dados_essenciais_ficha(ficha_id, user_id)
-    mestre_id = buscar_mestre_da_sala(sala_id)
-    is_mestre = (user_id == mestre_id)
-    socketio.emit('status_mestre', {'isMestre': is_mestre}, room=request.sid)
-    if not ficha_data:
-      send({'error': 'Ficha não encontrada ou não pertence a você.'}); return
-    nome_personagem = ficha_data['nome_personagem']
-    join_room(sala_id)
-    historico = buscar_historico_chat(sala_id)
-    socketio.emit('chat_history', {'historico': historico}, room=request.sid)
-    mensagem_entrada = f"--- {nome_personagem} entrou na taverna! ---"
-    send(mensagem_entrada, to=sala_id)
-    salvar_mensagem_chat(sala_id, 'Sistema', f"{nome_personagem} entrou na taverna!")
-    print(f"{nome_personagem} (User ID: {user_id}) entrou na sala {sala_id}")
-  except Exception as e:
-    print(f"Falha na autenticação: {e}"); send({'error': 'Autenticação falhou.'})
+    token = data.get('token'); sala_id = data.get('sala_id'); ficha_id = data.get('ficha_id')
+    if not all([token, sala_id, ficha_id]):
+        send({'error': 'Dados para entrar na sala incompletos.'}); return
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id = int(user_data['sub'])
+        
+        # Verifica se o usuário é o mestre da sala
+        mestre_id = buscar_mestre_da_sala(sala_id)
+        is_mestre = (user_id == mestre_id)
+        # Envia um evento privado de volta ao cliente informando seu status
+        socketio.emit('status_mestre', {'isMestre': is_mestre}, room=request.sid)
+
+        ficha_data = buscar_dados_essenciais_ficha(ficha_id, user_id)
+        if not ficha_data:
+            send({'error': 'Ficha não encontrada ou não pertence a você.'}); return
+            
+        nome_personagem = ficha_data['nome_personagem']
+        join_room(sala_id)
+        
+        historico = buscar_historico_chat(sala_id)
+        socketio.emit('chat_history', {'historico': historico}, room=request.sid)
+
+        # Envia a lista de jogadores atualizada para todos na sala
+        jogadores_na_sala = buscar_jogadores_na_sala(sala_id)
+        socketio.emit('lista_jogadores_atualizada', {'jogadores': jogadores_na_sala}, to=sala_id)
+        
+        # Formata a mensagem de entrada baseado no status
+        remetente_entrada = f"Mestre ({nome_personagem})" if is_mestre else nome_personagem
+        mensagem_entrada = f"--- {remetente_entrada} entrou na taverna! ---"
+        
+        send(mensagem_entrada, to=sala_id)
+        salvar_mensagem_chat(sala_id, 'Sistema', f"{remetente_entrada} entrou na taverna!")
+        print(f"{remetente_entrada} (User ID: {user_id}) entrou na sala {sala_id}")
+    except Exception as e:
+        print(f"Falha na autenticação: {e}"); send({'error': 'Autenticação falhou.'})
 
 @socketio.on('send_message')
 def handle_send_message(data):
-  token = data.get('token'); sala_id = data.get('sala_id'); message_text = data.get('message'); ficha_id = data.get('ficha_id')
-  if not all([token, sala_id, message_text, ficha_id]):
-    send({'error': 'Dados da mensagem incompletos.'}); return
-  try:
-    user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-    user_id = int(user_data['sub'])
-    ficha_data = buscar_dados_essenciais_ficha(ficha_id, user_id)
-    if not ficha_data: return
-    nome_personagem = ficha_data['nome_personagem']
-    salvar_mensagem_chat(sala_id, nome_personagem, message_text)
-    formatted_message = f"[{nome_personagem}]: {message_text}"
-    send(formatted_message, to=sala_id)
-  except Exception as e:
-    print(f"Erro ao enviar mensagem: {e}"); send({'error': 'Token inválido.'})
+    token = data.get('token'); sala_id = data.get('sala_id'); message_text = data.get('message'); ficha_id = data.get('ficha_id')
+    if not all([token, sala_id, message_text, ficha_id]):
+        send({'error': 'Dados da mensagem incompletos.'}); return
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id = int(user_data['sub'])
+        ficha_data = buscar_dados_essenciais_ficha(ficha_id, user_id)
+        if not ficha_data: return
+        
+        nome_personagem = ficha_data['nome_personagem']
+        # Verifica se é o mestre para adicionar uma tag [Mestre]
+        mestre_id = buscar_mestre_da_sala(sala_id)
+        remetente = f"[Mestre] {nome_personagem}" if user_id == mestre_id else nome_personagem
+        
+        salvar_mensagem_chat(sala_id, remetente, message_text)
+        formatted_message = f"[{remetente}]: {message_text}"
+        send(formatted_message, to=sala_id)
+    except Exception as e:
+        print(f"Erro ao enviar mensagem: {e}"); send({'error': 'Token inválido.'})
 
 @socketio.on('roll_dice')
 def handle_roll_dice(data):
-  token = data.get('token'); sala_id = data.get('sala_id'); dice_command = data.get('command'); ficha_id = data.get('ficha_id')
-  if not all([token, sala_id, dice_command, ficha_id]):
-    send({'error': 'Dados da rolagem incompletos.'}); return
-  try:
-    user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-    user_id = int(user_data['sub'])
-    ficha_data = buscar_dados_essenciais_ficha(ficha_id, user_id)
-    if not ficha_data: return
-    nome_personagem = ficha_data['nome_personagem']
-    total, rolagens = rolar_dados(dice_command)
-    resultado_str = f"{total} ({', '.join(map(str, rolagens))})" if len(rolagens) > 1 else str(total)
-    mensagem = f"🎲 [{nome_personagem}] rolou {dice_command} e tirou: {resultado_str}"
-    salvar_mensagem_chat(sala_id, 'Sistema', f"[{nome_personagem}] rolou {dice_command} e tirou: {resultado_str}")
-    send(mensagem, to=sala_id)
-  except Exception as e:
-    print(f"Erro ao rolar dados: {e}"); send({'error': 'Token inválido.'})
+    token = data.get('token'); sala_id = data.get('sala_id'); dice_command = data.get('command'); ficha_id = data.get('ficha_id')
+    if not all([token, sala_id, dice_command, ficha_id]):
+        send({'error': 'Dados da rolagem incompletos.'}); return
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id = int(user_data['sub'])
+        ficha_data = buscar_dados_essenciais_ficha(ficha_id, user_id)
+        if not ficha_data: return
+        
+        nome_personagem = ficha_data['nome_personagem']
+        # Verifica se é o mestre para adicionar uma tag [Mestre]
+        mestre_id = buscar_mestre_da_sala(sala_id)
+        remetente = f"[Mestre] {nome_personagem}" if user_id == mestre_id else nome_personagem
+        
+        total, rolagens = rolar_dados(dice_command)
+        resultado_str = f"{total} ({', '.join(map(str, rolagens))})" if len(rolagens) > 1 else str(total)
+        
+        mensagem = f"🎲 [{remetente}] rolou {dice_command} e tirou: {resultado_str}"
+        salvar_mensagem_chat(sala_id, 'Sistema', f"[{remetente}] rolou {dice_command} e tirou: {resultado_str}")
+        send(mensagem, to=sala_id)
+    except Exception as e:
+        print(f"Erro ao rolar dados: {e}"); send({'error': 'Token inválido.'})
+
+# --- NOVO EVENTO DE MESTRE PARA DAR XP ---
+@socketio.on('mestre_dar_xp')
+def handle_dar_xp(data):
+    """Ouve o comando do Mestre para distribuir XP."""
+    token = data.get('token'); sala_id = data.get('sala_id'); ficha_id_alvo = data.get('alvo_id'); quantidade = data.get('quantidade')
+    if not all([token, sala_id, ficha_id_alvo, quantidade]):
+        send({'error': 'Dados de XP incompletos.'}); return
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id = int(user_data['sub'])
+
+        # 1. VERIFICAÇÃO DE MESTRE
+        mestre_id = buscar_mestre_da_sala(sala_id)
+        if user_id != mestre_id:
+            send({'error': 'Apenas o Mestre pode distribuir XP.'}); return
+
+        # 2. LÓGICA DE DISTRIBUIÇÃO
+        quantidade_xp = int(quantidade)
+        alvos = []
+
+        if ficha_id_alvo == 'all':
+            # Se o alvo for 'all', busca todos os jogadores na sala
+            jogadores_na_sala = buscar_jogadores_na_sala(sala_id)
+            alvos = [j['id'] for j in jogadores_na_sala]
+        else:
+            # Se for um alvo específico, coloca em uma lista
+            alvos.append(int(ficha_id_alvo))
+
+        # 3. PROCESSA O XP PARA CADA ALVO
+        for id_alvo in alvos:
+            ficha_atualizada = adicionar_xp_e_upar(id_alvo, quantidade_xp)
+
+            if ficha_atualizada:
+                # 4. AVISA A TODOS NA SALA sobre o ganho de XP
+                nome_personagem_alvo = ficha_atualizada['nome_personagem']
+                mensagem_xp = f"--- {nome_personagem_alvo} recebe {quantidade_xp} pontos de experiência! ---"
+                salvar_mensagem_chat(sala_id, 'Sistema', mensagem_xp)
+                send(mensagem_xp, to=sala_id)
+
+                # 5. ENVIA A FICHA ATUALIZADA PARA TODOS
+                # O frontend de cada jogador decidirá se a ficha é a sua e se deve atualizar.
+                socketio.emit('ficha_atualizada', ficha_atualizada, to=sala_id)
+
+                # Mensagem de level up no chat
+                if 'subiu_de_nivel' in ficha_atualizada and ficha_atualizada['subiu_de_nivel']:
+                    mensagem_lvl_up = f"🎉🎉🎉 {nome_personagem_alvo} subiu para o nível {ficha_atualizada['nivel']}! 🎉🎉🎉"
+                    salvar_mensagem_chat(sala_id, 'Sistema', mensagem_lvl_up)
+                    send(mensagem_lvl_up, to=sala_id)
+
+    except Exception as e:
+        print(f"Erro ao processar XP: {e}")
+        send({'error': 'Token inválido ou erro ao dar XP.'})
 
 # --- INICIALIZAÇÃO DO SERVIDOR ---
 if __name__ == "__main__":
-  socketio.run(app, debug=True, port=5001)
+    socketio.run(app, debug=True, port=5001)

@@ -15,7 +15,7 @@ import MestrePanel from '../components/MestrePanel'; // Importa o painel do Mest
 
 function SalaPage() {
   // ------------------- ESTADOS & REFS -------------------
-  const { id: salaId } = useParams(); // Pega o ID da sala da URL.
+  const { id: salaId } = useParams(); // Pega o ID da sala da URL (ex: /salas/1).
   const { fetchWithAuth } = useAuth(); // Função de fetch com autenticação.
 
   const [messages, setMessages] = useState([]);      // Guarda o histórico e novas mensagens do chat.
@@ -23,11 +23,14 @@ function SalaPage() {
   const [diceCommand, setDiceCommand] = useState('1d20');  // Guarda o comando de rolagem de dados.
   const [fichaAtiva, setFichaAtiva] = useState(null);      // Guarda os dados da ficha ativa do jogador.
   const [feedback, setFeedback] = useState('');          // Guarda mensagens de feedback (ex: "Ficha salva!").
+  const [jogadores, setJogadores] = useState([]);         // Guarda a lista de jogadores na sala.
   const [isMestre, setIsMestre] = useState(false);        // Guarda se o usuário atual é o Mestre da sala.
   
   const socketRef = useRef(null);                   // Mantém a instância do socket viva entre renderizações.
 
-  // ------------------- CONEXÃO SOCKET.IO -------------------
+  // ------------------- EFEITOS (LIFECYCLE) -------------------
+
+  // useEffect principal: Gerencia a conexão WebSocket.
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const fichaId = sessionStorage.getItem('selectedFichaId');
@@ -64,6 +67,22 @@ function SalaPage() {
       setIsMestre(data.isMestre); // Atualiza o estado para mostrar/esconder o painel do Mestre.
     });
 
+    // NOVO: Ouve pela lista de jogadores enviada pelo servidor.
+    socket.on('lista_jogadores_atualizada', (data) => {
+      console.log('Lista de jogadores recebida:', data.jogadores);
+      setJogadores(data.jogadores || []);
+    });
+
+    // NOVO: Ouve por atualizações de ficha (ex: após ganhar XP).
+    socket.on('ficha_atualizada', (fichaAtualizada) => {
+      // Verifica se a ficha atualizada é a do jogador atual.
+      if (fichaAtiva && fichaAtualizada.id === fichaAtiva.id) {
+        console.log('Ficha ativa foi atualizada pelo servidor:', fichaAtualizada);
+        // Atualiza o estado local com os novos dados da ficha.
+        setFichaAtiva(fichaAtualizada);
+      }
+    });
+
     // Função de Limpeza: É executada quando o usuário sai da página.
     return () => {
       console.log('🔌 Desconectando do WebSocket...');
@@ -71,7 +90,7 @@ function SalaPage() {
     };
   }, [salaId]); // Dependência: reconecta se o ID da sala na URL mudar.
 
-  // ------------------- APLICA FUNDO TEMÁTICO -------------------
+  // useEffect para gerenciar o fundo temático da página.
   useEffect(() => {
     document.body.classList.add('sala-page-body');
     return () => {
@@ -79,7 +98,7 @@ function SalaPage() {
     };
   }, []); // O array vazio garante que rode apenas uma vez.
 
-  // ------------------- BUSCA A FICHA ATIVA -------------------
+  // useEffect para buscar os dados da ficha ativa.
   useEffect(() => {
     const fichaId = sessionStorage.getItem('selectedFichaId');
     if (!fichaId) return;
@@ -101,6 +120,8 @@ function SalaPage() {
   }, [salaId, fetchWithAuth]); // Roda se a sala (ou a função de fetch) mudar.
 
   // ------------------- FUNÇÕES DE LÓGICA (HANDLERS) -------------------
+  
+  // Função para ENVIAR MENSAGEM DE CHAT.
   const handleSendMessage = (event) => {
     event.preventDefault();
     if (newMessage.trim() === '') return;
@@ -113,6 +134,7 @@ function SalaPage() {
     }
   };
 
+  // Função para ROLAR DADOS.
   const handleRollDice = (event) => {
     event.preventDefault();
     if (diceCommand.trim() === '') return;
@@ -162,11 +184,11 @@ function SalaPage() {
   return (
     <div className="sala-layout-grid">
       
-      {/* ----------- COLUNA ESQUERDA (Anotações) ----------- */}
+      {/* ----------- COLUNA ESQUERDA (Anotações e Painel do Mestre) ----------- */}
       <div className="sala-coluna-anotacoes">
         <Anotacoes />
         {/* Renderização Condicional: O Painel do Mestre SÓ aparece se 'isMestre' for true. */}
-        {isMestre && <MestrePanel socket={socketRef.current} salaId={salaId} />}
+        {isMestre && <MestrePanel socket={socketRef.current} salaId={salaId} jogadores={jogadores} />}
       </div>
 
       {/* ----------- COLUNA BOLSA DE ITENS ----------- */}
