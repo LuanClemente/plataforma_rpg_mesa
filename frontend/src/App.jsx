@@ -12,8 +12,16 @@ import FichaEditPage from './pages/FichaEditPage';
 import SalasPage from './pages/SalasPage'; // A página com a LISTA de salas.
 import SalaPage from './pages/SalaPage';   // A página da sala de jogo INDIVIDUAL.
 
+// --- [NOVA IMPORTAÇÃO] ---
+// Importa a nova página do Esconderijo do Mestre.
+// (Nós vamos criar este arquivo logo após este passo!)
+import MestrePage from './pages/MestrePage';
+
 // Importa nossos componentes reutilizáveis.
 import ProtectedRoute from './components/ProtectedRoute';
+// --- [NOVA IMPORTAÇÃO] ---
+// Importa o nosso novo "porteiro" de rotas de Mestre.
+import MestreRoute from './components/MestreRoute';
 import Navbar from './components/Navbar';
 
 // Este é o componente principal que orquestra toda a aplicação.
@@ -24,7 +32,7 @@ function App() {
     <div className="app-container">
       
       {/* Renderiza nosso componente de navegação inteligente. */}
-      {/* A Navbar irá mudar seus links dependendo se o usuário está logado ou não. */}
+      {/* A Navbar agora mostra "Esconderijo" se o usuário for Mestre. */}
       <Navbar />
 
       {/* A tag <main> contém o conteúdo principal da página, que mudará de acordo com a rota. */}
@@ -39,8 +47,7 @@ function App() {
           <Route path="/registrar" element={<RegisterPage />} />
           
           {/* Rota para a Home Page (Bestiário). */}
-          {/* Ela está "envelopada" pelo nosso componente ProtectedRoute, */}
-          {/* o que significa que um usuário só pode acessá-la se estiver logado. */}
+          {/* Protegida pelo ProtectedRoute (só precisa estar logado). */}
           <Route 
             path="/home" 
             element={
@@ -80,15 +87,26 @@ function App() {
             } 
           />
 
-          {/* --- ROTA ADICIONADA E CORRIGIDA --- */}
           {/* Rota para a página da sala de jogo INDIVIDUAL. */}
-          {/* O ':id' na URL é um parâmetro dinâmico que representa o ID da sala. */}
           <Route 
             path="/salas/:id" 
             element={
               <ProtectedRoute>
                 <SalaPage />
               </ProtectedRoute>
+            } 
+          />
+
+          {/* --- [NOVA ROTA DO MESTRE] --- */}
+          {/* Esta é a nova rota para o "Esconderijo do Mestre". */}
+          {/* Ela é protegida pelo nosso componente MestreRoute. */}
+          {/* O MestreRoute verifica se o usuário está logado E se user.role == 'mestre'. */}
+          <Route 
+            path="/esconderijo-do-mestre" 
+            element={
+              <MestreRoute>
+                <MestrePage />
+              </MestreRoute>
             } 
           />
           

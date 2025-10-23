@@ -9,12 +9,10 @@ html, body {
   color: #e0e0e0;
 }
 
-/* O fundo padrão para páginas que NÃO têm uma imagem específica (ex: /fichas/editar) */
 body {
-  background-color: #1a1a1a;
+  background-color: #1a1a1a; /* Fundo padrão */
 }
 
-/* O container principal da nossa aplicação React */
 #root {
   min-height: 100vh;
   padding: 2rem;
@@ -43,20 +41,9 @@ body.bestiary-page-body,
 body.fichas-page-body,
 body.edit-ficha-page-body,
 body.salas-page-body,
-body.sala-page-body { /* <-- Adicionada a classe da sala individual que faltava */
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-}
-
-/* --- CORREÇÃO CRUCIAL APLICADA AQUI --- */
-/* Os caminhos foram alterados para apontar para a pasta 'public/assets/' */
-/* Certifique-se de que sua pasta 'assets' esteja em 'frontend/public/' */
-
-/* --- CORREÇÃO ALTERNATIVA: Usando caminhos relativos a partir de 'src/assets/' --- */
-/* Para esta abordagem, a pasta 'assets' deve estar dentro de 'frontend/src/' */
-
+body.sala-page-body,
+body.mestre-background, 
+/* Caminhos das imagens (ASSUMINDO que 'assets' está DENTRO de 'frontend/src/') */
 body.login-page-body {
   background-image: url('./assets/login_background.png');
 }
@@ -72,8 +59,11 @@ body.edit-ficha-page-body {
 body.salas-page-body {
   background-image: url('./assets/salas_background.png');
 }
-body.sala-page-body { 
+body.sala-page-body {
   background-image: url('./assets/sala-background.png');
+}
+body.mestre-background {
+  background-image: url('./assets/mestre_background.png'); 
 }
 
 /* Layout especial para a página de login */
@@ -111,7 +101,7 @@ body.login-page-body #root {
   color: #fff;
 }
 
-/* --- FORMULÁRIOS GERAIS --- */
+/* --- FORMULÁRIOS GERAIS (Login, Registro) --- */
 .login-container {
   max-width: 400px;
   margin: 0 auto;
@@ -227,7 +217,7 @@ body.login-page-body #root {
   background-color: #333;
 }
 
-/* --- MODAL (Senha, Seleção de Personagem) --- */
+/* --- MODAL (Senha, Seleção Personagem, Esconderijo Mestre) --- */
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -241,23 +231,27 @@ body.login-page-body #root {
   z-index: 1000;
 }
 .modal-content {
-  background-color: #2a2a2a;
+  background-color: #2a2a2a; /* Alterado de #222 para consistência */
   padding: 2rem;
   border-radius: 8px;
-  border: 1px solid #c59d5f;
+  border: 1px solid #c59d5f; /* Alterado de #aa8342 */
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
   width: 90%;
-  max-width: 450px;
+  max-width: 600px; /* Aumentado para formulários maiores */
   text-align: center;
+  z-index: 1001;
 }
-.modal-content h2 {
+.modal-content h2, .modal-content h3 { /* Aplicar a H3 também */
   border-bottom: none;
+  margin-top: 0; /* Adicionado para remover espaço */
 }
 .modal-actions {
   display: flex;
   gap: 1rem;
   margin-top: 1.5rem;
+  justify-content: center; /* Centraliza botões simples */
 }
+/* Lista de personagens */
 .character-selection-list {
   display: flex;
   flex-direction: column;
@@ -331,20 +325,18 @@ body.login-page-body #root {
 }
 
 /* --- LAYOUT DA SALA DE JOGO (4 COLUNAS) --- */
-/* REMOÇÃO: Removido o layout antigo de 2 colunas */
 .sala-layout-grid {
   display: grid;
-  grid-template-columns: 1.5fr 1.5fr 1.5fr 2.5fr; /* Anotações, Bolsa, Ficha/Dados, Chat */
+  grid-template-columns: 1.5fr 1.5fr 1.5fr 2.5fr; 
   grid-template-areas: "anotacoes inventario ficha chat";
   gap: 1.5rem;
-  height: calc(100vh - 10rem); /* Altura da tela menos a navegação e padding */
+  height: calc(100vh - 10rem); 
 }
 .sala-coluna-anotacoes { grid-area: anotacoes; }
 .sala-coluna-inventario { grid-area: inventario; }
 .sala-coluna-ficha { grid-area: ficha; }
 .sala-coluna-chat { grid-area: chat; }
 
-/* --- CORREÇÃO DE OVERFLOW (AQUI!) --- */
 .sala-coluna-anotacoes,
 .sala-coluna-inventario,
 .sala-coluna-ficha,
@@ -352,30 +344,27 @@ body.login-page-body #root {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  min-height: 0; /* A "mágica" do Flexbox: permite que os filhos encolham. */
+  min-height: 0; 
 }
 
 /* --- PAINÉIS DA SALA DE JOGO --- */
 
-/* Chat (Diário da Aventura) */
+/* Chat */
 .chat-container {
   display: flex;
   flex-direction: column;
-  flex-grow: 1; /* Faz o chat-container preencher a coluna */
+  flex-grow: 1; 
   background-color: rgba(42, 42, 42, 0.8);
   border: 1px solid #444;
   border-radius: 8px;
   padding: 1rem;
   box-sizing: border-box;
-  min-height: 0; /* Garante que o container do chat possa encolher */
+  min-height: 0; 
 }
-.chat-container h2 {
-  border: none;
-  margin-top: 0;
-}
+.chat-container h2 { border: none; margin-top: 0; }
 .message-list {
-  flex-grow: 1; /* Faz a lista de mensagens crescer para preencher o espaço */
-  overflow-y: auto; /* Adiciona a barra de rolagem! */
+  flex-grow: 1; 
+  overflow-y: auto; 
   background-color: rgba(10, 10, 10, 0.7);
   border: 1px solid #555;
   border-radius: 4px;
@@ -407,17 +396,19 @@ body.login-page-body #root {
   border: 1px solid #444;
   border-radius: 8px;
   padding: 1rem;
+  flex-grow: 1; 
+  overflow-y: auto; 
+  min-height: 0; 
 }
 .ficha-in-game-container h2 { border-bottom: none; margin-top: 0; }
 .ficha-in-game-container p { margin: 0.25rem 0; }
 .atributos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1rem 0; text-align: center; }
-/* (O .atributo-item foi removido por não ser mais usado, substituído por .atributo-item-editavel) */
 .atributo-nome { display: block; font-size: 0.9rem; color: #c59d5f; }
 .atributo-valor { display: block; font-size: 1.5rem; font-weight: bold; }
 .pericias-lista { list-style: none; padding: 0; margin: 1rem 0 0 0; text-align: left; columns: 2; -webkit-columns: 2; -moz-columns: 2; }
 .pericias-lista li { padding: 0.25rem 0; }
 
-/* Ficha Editável (Atributos e Perícias) */
+/* Ficha Editável */
 .atributo-item-editavel {
   background-color: #1a1a1a;
   padding: 0.5rem;
@@ -435,29 +426,11 @@ body.login-page-body #root {
 .add-skill-form input { flex-grow: 1; }
 .add-skill-form button { font-family: 'Arial', sans-serif; font-weight: bold; font-size: 1.5rem; border-radius: 4px; border: 1px solid #c59d5f; background-color: #c59d5f; color: #111; cursor: pointer; padding: 0 0.8rem; }
 
-/* --- Barra de XP --- */
-.xp-bar-container {
-  margin: 1rem 0;
-}
-.xp-bar-container label {
-  font-size: 0.9rem;
-  color: #ccc;
-  display: block;
-  margin-bottom: 0.25rem;
-}
-.xp-bar-background {
-  width: 100%;
-  height: 10px;
-  background-color: #1a1a1a;
-  border: 1px solid #555;
-  border-radius: 5px;
-  overflow: hidden;
-}
-.xp-bar-fill {
-  height: 100%;
-  background-color: #c59d5f; /* Cor dourada do XP */
-  transition: width 0.5s ease-in-out; /* Animação suave! */
-}
+/* Barra de XP */
+.xp-bar-container { margin: 1rem 0; }
+.xp-bar-container label { font-size: 0.9rem; color: #ccc; display: block; margin-bottom: 0.25rem; }
+.xp-bar-background { width: 100%; height: 10px; background-color: #1a1a1a; border: 1px solid #555; border-radius: 5px; overflow: hidden; }
+.xp-bar-fill { height: 100%; background-color: #c59d5f; transition: width 0.5s ease-in-out; }
 
 /* Anotações */
 .anotacoes-container {
@@ -465,18 +438,15 @@ body.login-page-body #root {
   border: 1px solid #444;
   border-radius: 8px;
   padding: 1rem;
-  display: flex;
+  display: flex; 
   flex-direction: column;
   box-sizing: border-box;
-  flex-grow: 1; /* Faz o container de anotações preencher a coluna */
-  min-height: 0; /* Permite que o container encolha */
+  flex-grow: 1; 
+  min-height: 0; 
 }
-.anotacoes-container h2 {
-  border: none;
-  margin-top: 0;
-}
+.anotacoes-container h2 { border: none; margin-top: 0; }
 .anotacoes-container textarea {
-  flex-grow: 1; /* Faz o textarea crescer para preencher o container */
+  flex-grow: 1; 
   width: 100%;
   background-color: #1a1a1a;
   color: #e0e0e0;
@@ -486,15 +456,9 @@ body.login-page-body #root {
   font-size: 1rem;
   padding: 0.5rem;
   box-sizing: border-box;
-  /* Removida a altura mínima fixa para permitir o flex-grow */
+  resize: none; 
 }
-.anotacoes-status {
-  font-size: 0.9rem;
-  color: #999;
-  text-align: right;
-  margin-top: 0.5rem;
-  font-style: italic;
-}
+.anotacoes-status { font-size: 0.9rem; color: #999; text-align: right; margin-top: 0.5rem; font-style: italic; }
 
 /* Bolsa de Itens (Inventário) */
 .inventario-container {
@@ -502,70 +466,31 @@ body.login-page-body #root {
   border: 1px solid #444;
   border-radius: 8px;
   padding: 1rem;
+  display: flex; 
+  flex-direction: column;
+  box-sizing: border-box;
+  flex-grow: 1; 
+  min-height: 0; 
 }
-.inventario-container h2 {
-  border: none;
-  margin-top: 0;
-}
-.inventario-form {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-.inventario-form input {
-  flex-grow: 1;
-  width: 40%;
-}
-.add-item-button {
-  font-family: 'Arial', sans-serif;
-  font-weight: bold;
-  font-size: 1.5rem;
-  padding: 0 1rem;
-  border-radius: 4px;
-  border: 1px solid #c59d5f;
-  background-color: #c59d5f;
-  color: #111;
-  cursor: pointer;
-}
+.inventario-container h2 { border: none; margin-top: 0; }
+.inventario-form { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.inventario-form input { flex-grow: 1; /* width: 40%; (removido) */ }
+.add-item-button { font-family: 'Arial', sans-serif; font-weight: bold; font-size: 1.5rem; padding: 0 1rem; border-radius: 4px; border: 1px solid #c59d5f; background-color: #c59d5f; color: #111; cursor: pointer; }
 .inventario-list {
-  max-height: 200px;
-  overflow-y: auto;
+  /* max-height: 200px; (removido) */
+  overflow-y: auto; 
   background-color: rgba(10, 10, 10, 0.7);
   border: 1px solid #555;
   border-radius: 4px;
   padding: 0.5rem;
+  flex-grow: 1; 
+  min-height: 50px; 
 }
-.inventario-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem;
-  border-bottom: 1px solid #333;
-}
-.inventario-item:last-child {
-  border-bottom: none;
-}
-.item-info {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-}
-.item-info small {
-  font-size: 0.8rem;
-  color: #999;
-  font-family: 'Arial', sans-serif;
-}
-.delete-item-button {
-  font-family: 'Arial', sans-serif;
-  font-weight: bold;
-  border-radius: 50%;
-  border: 1px solid #ab4e4e;
-  background-color: #ab4e4e;
-  color: white;
-  width: 25px;
-  height: 25px;
-  cursor: pointer;
-}
+.inventario-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-bottom: 1px solid #333; }
+.inventario-item:last-child { border-bottom: none; }
+.item-info { display: flex; flex-direction: column; text-align: left; }
+.item-info small { font-size: 0.8rem; color: #999; font-family: 'Arial', sans-serif; }
+.delete-item-button { font-family: 'Arial', sans-serif; font-weight: bold; border-radius: 50%; border: 1px solid #ab4e4e; background-color: #ab4e4e; color: white; width: 25px; height: 25px; cursor: pointer; line-height: 23px; }
 
 /* --- PAINEL DO MESTRE --- */
 .mestre-panel-container {
@@ -577,17 +502,11 @@ body.login-page-body #root {
   flex-direction: column;
   box-sizing: border-box;
 }
-.mestre-panel-container h2 {
-  border-bottom: 1px solid #c59d5f;
-  margin-top: 0;
-  color: #ff8a8a;
-}
-.mestre-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-.mestre-form select {
+.mestre-panel-container h2 { border-bottom: 1px solid #c59d5f; margin-top: 0; color: #ff8a8a; }
+/* Formulário dentro do Painel do Mestre (XP) */
+.mestre-form { display: flex; flex-direction: column; gap: 1rem; }
+.mestre-form select,
+.mestre-form input[type="number"] {
   width: 100%;
   padding: 0.8rem;
   background-color: #1a1a1a;
@@ -598,3 +517,121 @@ body.login-page-body #root {
   font-size: 1.2rem;
   box-sizing: border-box;
 }
+/* Reutiliza .login-button para "Dar XP" ou crie .mestre-xp-button */
+
+/* --- Estilos ESPECÍFICOS do Esconderijo do Mestre --- */
+/* (Estes complementam os estilos gerais de .modal-content e .modal-backdrop) */
+
+/* Tabela de Gerenciamento */
+.mestre-table {
+  width: 100%;
+  border-collapse: collapse; /* Remove espaços entre bordas */
+  margin-top: 1rem;
+  background-color: rgba(0, 0, 0, 0.6); /* Fundo semi-transparente para a tabela */
+}
+.mestre-table th,
+.mestre-table td {
+  border: 1px solid #aa8342; /* Borda dourada/marrom mais escura */
+  padding: 12px 15px; /* Espaçamento interno das células */
+  text-align: left; /* Alinha texto à esquerda */
+}
+.mestre-table th {
+  background-color: rgba(0, 0, 0, 0.8); /* Fundo mais escuro para cabeçalho */
+  color: #aa8342; /* Cor do texto do cabeçalho */
+  font-weight: bold;
+}
+.mestre-table tr:nth-child(even) { /* Colore linhas pares para legibilidade */
+  background-color: rgba(255, 255, 255, 0.05); /* Fundo levemente mais claro */
+}
+/* Botões de Ação na Tabela */
+.mestre-table .btn-editar {
+  background-color: #007bff; /* Azul */
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-right: 5px;
+}
+.mestre-table .btn-apagar {
+  background-color: #dc3545; /* Vermelho */
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.mestre-table .btn-editar:hover { background-color: #0056b3; /* Azul escuro */ }
+.mestre-table .btn-apagar:hover { background-color: #c82333; /* Vermelho escuro */ }
+
+/* Botão de Criar Novo (acima da tabela) */
+.btn-criar {
+  background-color: #28a745; /* Verde */
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-bottom: 1rem; /* Adiciona espaço abaixo do botão */
+  float: left; /* Alinha o botão à esquerda */
+}
+.btn-criar:hover { background-color: #218838; /* Verde escuro */ }
+
+/* Formulário dentro do Modal do Mestre */
+.mestre-form .form-group { /* Cada par Label + Input */
+  margin-bottom: 1rem;
+  text-align: left; /* Alinha labels à esquerda */
+}
+.mestre-form .form-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: #aa8342; /* Dourado escuro */
+}
+.mestre-form .form-group input,
+.mestre-form .form-group select, /* Estilo para dropdowns também */
+.mestre-form .form-group textarea /* Estilo para textareas também */
+{
+  width: 100%;
+  padding: 8px;
+  background-color: #333; /* Cinza escuro */
+  border: 1px solid #555; /* Borda cinza */
+  color: white;
+  border-radius: 4px;
+  box-sizing: border-box; 
+  font-family: 'Arial', sans-serif; /* Fonte legível */
+  font-size: 1rem;
+}
+/* Para agrupar campos na mesma linha (ex: Vida e Defesa) */
+.mestre-form .form-row {
+  display: flex;
+  gap: 1rem; 
+}
+.mestre-form .form-row .form-group {
+  flex: 1; /* Faz os grupos ocuparem espaço igual */
+}
+/* Botões Salvar e Cancelar no modal */
+.mestre-form .form-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end; /* Alinha botões à direita */
+  gap: 1rem;
+}
+.btn-salvar {
+  background-color: #28a745; /* Verde */
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.btn-cancelar {
+  background-color: #6c757d; /* Cinza */
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.btn-salvar:hover { background-color: #218838; }
+.btn-cancelar:hover { background-color: #5a6268; }

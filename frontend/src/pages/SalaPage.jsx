@@ -23,8 +23,8 @@ function SalaPage() {
   const [diceCommand, setDiceCommand] = useState('1d20');  // Guarda o comando de rolagem de dados.
   const [fichaAtiva, setFichaAtiva] = useState(null);      // Guarda os dados da ficha ativa do jogador.
   const [feedback, setFeedback] = useState('');          // Guarda mensagens de feedback (ex: "Ficha salva!").
-  const [jogadores, setJogadores] = useState([]);         // Guarda a lista de jogadores na sala.
   const [isMestre, setIsMestre] = useState(false);        // Guarda se o usuário atual é o Mestre da sala.
+  const [jogadores, setJogadores] = useState([]);      // Guarda a lista de jogadores na sala.
   
   const socketRef = useRef(null);                   // Mantém a instância do socket viva entre renderizações.
 
@@ -67,20 +67,24 @@ function SalaPage() {
       setIsMestre(data.isMestre); // Atualiza o estado para mostrar/esconder o painel do Mestre.
     });
 
-    // NOVO: Ouve pela lista de jogadores enviada pelo servidor.
-    socket.on('lista_jogadores_atualizada', (data) => {
-      console.log('Lista de jogadores recebida:', data.jogadores);
-      setJogadores(data.jogadores || []);
+    // Evento 'lista_jogadores_atualizada': Ouve pela lista de jogadores.
+    socket.on('lista_jogadores_atualizada', (jogadores) => {
+      console.log('Lista de jogadores recebida:', jogadores);
+      // O backend envia a lista direto, não um objeto {jogadores: ...}
+      setJogadores(jogadores || []);
     });
 
-    // NOVO: Ouve por atualizações de ficha (ex: após ganhar XP).
+    // Evento 'ficha_atualizada': Ouve por atualizações de ficha (ex: XP).
     socket.on('ficha_atualizada', (fichaAtualizada) => {
       // Verifica se a ficha atualizada é a do jogador atual.
-      if (fichaAtiva && fichaAtualizada.id === fichaAtiva.id) {
-        console.log('Ficha ativa foi atualizada pelo servidor:', fichaAtualizada);
-        // Atualiza o estado local com os novos dados da ficha.
-        setFichaAtiva(fichaAtualizada);
-      }
+      // Usamos 'prevFicha' para garantir que estamos comparando com o estado mais recente.
+      setFichaAtiva(prevFicha => {
+        if (prevFicha && prevFicha.id === fichaAtualizada.id) {
+          console.log('Ficha ativa foi atualizada pelo servidor:', fichaAtualizada);
+          return fichaAtualizada; // Atualiza o estado local com os novos dados.
+        }
+        return prevFicha; // Mantém a ficha atual se o ID não corresponder.
+      });
     });
 
     // Função de Limpeza: É executada quando o usuário sai da página.
@@ -188,7 +192,13 @@ function SalaPage() {
       <div className="sala-coluna-anotacoes">
         <Anotacoes />
         {/* Renderização Condicional: O Painel do Mestre SÓ aparece se 'isMestre' for true. */}
-        {isMestre && <MestrePanel socket={socketRef.current} salaId={salaId} jogadores={jogadores} />}
+        {isMestre && (
+          <MestrePanel 
+            socket={socketRef.current} 
+            salaId={salaId} 
+            jogadores={jogadores} 
+          />
+        )}
       </div>
 
       {/* ----------- COLUNA BOLSA DE ITENS ----------- */}

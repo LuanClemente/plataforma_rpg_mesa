@@ -1,28 +1,46 @@
 // frontend/src/components/MestrePanel.jsx
 import React, { useState } from 'react';
 
-// Este componente receberá o 'socket', 'salaId' e a lista de 'jogadores' como props.
+/**
+ * Este componente renderiza o painel de ferramentas do Mestre,
+ * como a distribuição de XP.
+ * Recebe o 'socket', 'salaId' e a lista de 'jogadores' como props.
+ */
 function MestrePanel({ socket, salaId, jogadores }) {
+  // Estado para a quantidade de XP a ser dada.
   const [xpAmount, setXpAmount] = useState(100);
-  const [targetFichaId, setTargetFichaId] = useState('all'); // 'all' ou um ficha_id
+  // Estado para o ID da ficha alvo (ou 'all' para todos).
+  const [targetFichaId, setTargetFichaId] = useState('all');
+  // Estado para feedback (ex: "XP enviado!").
+  const [mensagemMestre, setMensagemMestre] = useState('');
 
+  // Função chamada ao clicar no botão "Dar XP".
   const handleDarXp = (e) => {
     e.preventDefault();
+    // Verifica se temos uma conexão de socket ativa e uma quantidade de XP válida.
     if (!socket || !salaId || xpAmount <= 0) {
-      alert("Erro: Não foi possível enviar o comando de XP.");
+      setMensagemMestre("Erro: Conexão perdida ou XP inválido.");
       return;
     }
 
+    // Pega o token para autenticar o Mestre no backend.
     const token = localStorage.getItem('authToken');
+    
+    // Monta o "pacote de dados" (payload) para enviar ao servidor.
     const payload = {
       token,
       sala_id: salaId,
-      alvo_id: targetFichaId, // O ID da ficha do alvo ou 'all'
-      quantidade: parseInt(xpAmount, 10),
+      alvo_id: targetFichaId, // "all" ou o ID da ficha específica.
+      quantidade: parseInt(xpAmount, 10), // Garante que é um número.
     };
 
     console.log("Emitindo 'mestre_dar_xp' com payload:", payload);
+    // Emite o evento 'mestre_dar_xp' para o servidor WebSocket.
     socket.emit('mestre_dar_xp', payload);
+
+    // Fornece feedback imediato para o Mestre.
+    setMensagemMestre(`${xpAmount} XP distribuído!`);
+    setTimeout(() => setMensagemMestre(''), 3000); // Limpa a mensagem após 3 segundos.
   };
   
   return (
@@ -44,22 +62,32 @@ function MestrePanel({ socket, salaId, jogadores }) {
         
         <div className="form-group">
           <label htmlFor="targetPlayer">Alvo</label>
+          {/* O seletor de alvo, agora funcional! */}
           <select 
             id="targetPlayer" 
             value={targetFichaId} 
             onChange={(e) => setTargetFichaId(e.target.value)}
           >
+            {/* Opção padrão para "Todos" */}
             <option value="all">-- Todos os Jogadores --</option>
-            {jogadores.map(jogador => (
-              <option key={jogador.id} value={jogador.id}>{jogador.nome_personagem}</option>
+            
+            {/* Mapeia a lista de 'jogadores' recebida via props. */}
+            {jogadores
+              // Filtramos para mostrar apenas jogadores (não o mestre).
+              .filter(jogador => jogador.role === 'player')
+              // Criamos uma <option> para cada jogador.
+              .map(jogador => (
+                <option key={jogador.ficha_id} value={jogador.ficha_id}>
+                  {jogador.nome_personagem}
+                </option>
             ))}
           </select>
         </div>
         
         <button type="submit" className="login-button">Dar XP</button>
+        {/* Exibe a mensagem de feedback para o Mestre */}
+        {mensagemMestre && <p className="feedback-message" style={{fontSize: '0.9rem'}}>{mensagemMestre}</p>}
       </form>
-
-      {/* Aqui adicionaremos outras ferramentas do Mestre no futuro */}
     </div>
   );
 }

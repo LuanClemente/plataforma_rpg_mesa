@@ -51,11 +51,14 @@ CREATE TABLE habilidades_base (
 print("Tabela 'habilidades_base' criada com sucesso!")
 
 cursor.execute("""
-CREATE TABLE usuarios (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, nome_usuario TEXT NOT NULL UNIQUE, senha_hash TEXT NOT NULL
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome_usuario TEXT NOT NULL UNIQUE,
+    senha_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'player' -- NOVO! (Valores: 'player' ou 'mestre')
 );
 """)
-print("Tabela 'usuarios' (Mãe) criada com sucesso!")
+print("Tabela 'usuarios' (com coluna 'role') verificada/criada com sucesso!")
 
 # --- Tabelas "Filhas" (Com dependências / Foreign Keys) ---
 # A ordem aqui é crucial.

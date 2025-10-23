@@ -6,9 +6,8 @@ import json
 import os
 
 # --- CORREÇÃO DE IMPORTAÇÃO ---
-# Alteramos a importação de relativa ('core.') para absoluta ('backend.core.')
-# para garantir que o módulo seja encontrado quando executamos o servidor da raiz do projeto.
-from backend.core.personagem import Personagem
+# Usando importação relativa. O '..' sobe de 'saves' para 'backend' e então entra em 'core'.
+from ..core.personagem import Personagem
 
 # --- LÓGICA DE CAMINHO ABSOLUTO E ROBUSTA ---
 # Descobre o caminho absoluto para a pasta onde este script está localizado (a pasta 'saves').
