@@ -1,43 +1,32 @@
-// frontend/src/components/MestreRoute.jsx
+// frontend/src/components/MestreRoute.jsx (Teste Renderizando MestrePage Importada)
 
-// Importa ferramentas do React Router e nosso hook de autenticação
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+// --- NOVA IMPORTAÇÃO ---
+// Importa a MestrePage (ultra-simplificada) diretamente aqui
+import MestrePage from '../pages/MestrePage'; 
+// --------------------
 
-/**
- * Este componente é um "Porteiro" ou "Sentinela" para rotas de Mestre.
- * Ele verifica DUAS coisas:
- * 1. O usuário está logado?
- * 2. O usuário logado é um Mestre?
- */
 function MestreRoute() {
-  // Pega o objeto 'user' do nosso contexto
+  console.log('--- MestreRoute: Iniciando verificação de Mestre ---'); 
   const { user } = useAuth();
+  console.log('MestreRoute: User recebido do contexto:', user); 
 
-  // Caso 1: O usuário NÃO está logado (user é nulo)
-  // Se 'user' for nulo, o usuário não está autenticado.
   if (!user) {
-    // Redireciona o usuário para a página de Login.
-    // 'replace' impede que o usuário volte para esta página com o botão "Voltar".
+    console.log('MestreRoute: BLOQUEADO - Usuário não logado. Redirecionando para /'); 
     return <Navigate to="/" replace />;
   }
 
-  // Caso 2: O usuário ESTÁ logado, mas NÃO é um Mestre
-  // Se o 'role' não for 'mestre', ele é um 'player' comum.
   if (user.role !== 'mestre') {
-    console.log(`MestreRoute: Usuário logado, mas role='${user.role}'. Redirecionando para /home`);
-    // Redireciona o 'player' para a página Home (ou qualquer outra página principal).
-    // Não queremos que ele veja uma página de "Acesso Negado",
-    // apenas o mandamos de volta para um lugar seguro.
+    console.log(`MestreRoute: BLOQUEADO - Role='${user.role}' não é 'mestre'. Redirecionando para /home`); 
     return <Navigate to="/home" replace />;
   }
 
-  // Caso 3: O usuário ESTÁ logado E É um Mestre
-  // Se passou pelas duas verificações acima, permitimos o acesso.
-  // O <Outlet /> é um componente especial do React Router que diz:
-  // "Renderize qualquer componente filho que esta rota estiver protegendo".
-  // (No caso, ele vai renderizar a <MestrePage />)
-  return <Outlet />;
+  console.log('MestreRoute: PERMITIDO - Tentando renderizar <MestrePage /> importada...'); 
+  // --- MUDANÇA AQUI ---
+  // Em vez de <Outlet />, retorna a MestrePage importada diretamente
+  return <MestrePage />; 
+  // --- FIM DA MUDANÇA ---
 }
 
 export default MestreRoute;

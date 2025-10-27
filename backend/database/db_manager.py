@@ -768,6 +768,25 @@ def buscar_inventario_sala(ficha_id, sala_id):
     except Exception as e:
         print(f"Erro ao buscar inventário da sala: {e}")
         return []
+    
+def buscar_todas_as_habilidades():
+    #Busca todas as habilidades da tabela 'habilidades_base'.
+    try:
+        # Conecta ao banco de dados
+        with sqlite3.connect(NOME_DB) as conexao:
+            # Configura para retornar resultados como dicionários (opcional, mas bom para API)
+            conexao.row_factory = sqlite3.Row 
+            cursor = conexao.cursor()
+            # Executa a query para selecionar todas as habilidades, ordenadas por nome
+            cursor.execute("SELECT * FROM habilidades_base ORDER BY nome")
+            # Converte o resultado em uma lista de dicionários
+            habilidades = [dict(row) for row in cursor.fetchall()]
+            # Retorna a lista
+        return habilidades
+    except sqlite3.Error as e:
+        # Em caso de erro, imprime a mensagem e retorna uma lista vazia
+        print(f"Erro ao buscar todas as habilidades: {e}")
+        return []
 
 def adicionar_item_sala(ficha_id, sala_id, nome_item, descricao):
     """Adiciona um novo item ao inventário de um personagem na sala."""
