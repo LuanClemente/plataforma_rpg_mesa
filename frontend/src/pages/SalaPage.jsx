@@ -41,7 +41,7 @@ function SalaPage() {
     }
     
     // Conecta-se ao servidor backend via WebSocket.
-    const socket = io('http://127.0.0.1:5001');
+    const socket = io('http://127.0.0.1:5003');
     socketRef.current = socket;
 
     // Evento 'connect': Dispara quando a conexão é estabelecida.
@@ -109,7 +109,7 @@ function SalaPage() {
 
     const buscarFicha = async () => {
       try {
-        const response = await fetchWithAuth(`http://127.0.0.1:5001/api/fichas/${fichaId}`);
+        const response = await fetchWithAuth(`http://127.0.0.1:5003/api/fichas/${fichaId}`);
         const data = await response.json();
         if (response.ok) {
           setFichaAtiva(data);
@@ -172,7 +172,7 @@ function SalaPage() {
     if (!fichaAtiva) return;
     setFeedback('Salvando...');
     try {
-      const response = await fetchWithAuth(`http://127.0.0.1:5001/api/fichas/${fichaAtiva.id}`, {
+      const response = await fetchWithAuth(`http://127.0.0.1:5003/api/fichas/${fichaAtiva.id}`, {
         method: 'PUT',
         body: JSON.stringify(fichaAtiva),
       });

@@ -21,7 +21,7 @@ function Anotacoes() {
     const buscarNotas = async () => {
       setStatus('Carregando...');
       try {
-        const response = await fetchWithAuth(`http://127.0.0.1:5001/api/salas/${salaId}/anotacoes`);
+        const response = await fetchWithAuth(`http://127.0.0.1:5003/api/salas/${salaId}/anotacoes`);
         const data = await response.json();
         if (response.ok) {
           setNotas(data.notas); // Preenche o textarea com as notas salvas.
@@ -46,7 +46,7 @@ function Anotacoes() {
     
     setStatus('Salvando...');
     try {
-      const response = await fetchWithAuth(`http://127.0.0.1:5001/api/salas/${salaId}/anotacoes`, {
+      const response = await fetchWithAuth(`http://127.0.0.1:5003/api/salas/${salaId}/anotacoes`, {
         method: 'PUT',
         body: JSON.stringify({ notas: notas }), // Envia o estado 'notas' atual.
       });

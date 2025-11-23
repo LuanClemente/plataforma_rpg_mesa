@@ -14,7 +14,7 @@ function HomePage() {
   // Este primeiro useEffect é responsável por buscar os dados da API.
   useEffect(() => {
     // A função 'fetch' faz a requisição para o nosso backend.
-    fetch('http://127.0.0.1:5001/api/monstros')
+    fetch('http://127.0.0.1:5003/api/monstros')
       // A primeira resposta é o objeto da requisição; usamos .json() para extrair os dados.
       .then(response => response.json())
       // Agora que temos os dados, usamos 'setMonstros' para guardá-los no nosso estado.

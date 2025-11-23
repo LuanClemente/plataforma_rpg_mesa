@@ -36,7 +36,7 @@ function GerenciarItens() {
     setIsLoading(true);
     try {
       // Rota GET /api/itens é pública
-      const response = await fetch('http://127.0.0.1:5001/api/itens');
+      const response = await fetch('http://127.0.0.1:5003/api/itens');
       if (!response.ok) {
         throw new Error('Falha ao buscar itens');
       }
@@ -97,8 +97,8 @@ function GerenciarItens() {
 
     const isEditing = itemEmEdicao !== null;
     const url = isEditing 
-      ? `http://127.0.0.1:5001/api/itens/${itemEmEdicao.id}` // URL de Update
-      : `http://127.0.0.1:5001/api/itens`; // URL de Create
+      ? `http://127.0.0.1:5003/api/itens/${itemEmEdicao.id}` // URL de Update
+      : `http://127.0.0.1:5003/api/itens`; // URL de Create
       
     const method = isEditing ? 'PUT' : 'POST';
 
@@ -127,7 +127,7 @@ function GerenciarItens() {
   const handleApagar = async (itemId) => {
     if (window.confirm("Tem certeza que deseja apagar este item da base de dados?")) {
       try {
-        const url = `http://127.0.0.1:5001/api/itens/${itemId}`;
+        const url = `http://127.0.0.1:5003/api/itens/${itemId}`;
         
         // Usa 'fetchWithAuth' para a rota DELETE
         const response = await fetchWithAuth(url, {

@@ -35,7 +35,7 @@ function GerenciarHabilidades() {
       // --- [CORREÇÃO APLICADA AQUI] ---
       // Agora chamamos a rota GET /api/habilidades que criamos no backend.
       // Esta rota é pública, então usamos 'fetch' normal.
-      const response = await fetch('http://127.0.0.1:5001/api/habilidades'); 
+      const response = await fetch('http://127.0.0.1:5003/api/habilidades'); 
       
       // Verifica se a resposta da rede foi bem-sucedida
       if (!response.ok) {

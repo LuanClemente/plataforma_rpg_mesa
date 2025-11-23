@@ -38,7 +38,7 @@ function RegisterPage() {
 
     try {
       // Envia os dados para a API de registro no backend.
-      const response = await fetch('http://127.0.0.1:5001/api/registrar', {
+      const response = await fetch('http://127.0.0.1:5003/api/registrar', {
         method: 'POST', // Usamos POST para criar um novo recurso (usuário).
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }), // Envia o usuário e a senha no corpo da requisição.

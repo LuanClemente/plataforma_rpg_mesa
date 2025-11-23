@@ -7,4 +7,4 @@ from . import servidor_api
 
 if __name__ == "__main__":
     # Inicia o servidor Flask/SocketIO definido em servidor_api.py
-    servidor_api.socketio.run(servidor_api.app, debug=True, port=5001, host='0.0.0.0')
+    servidor_api.socketio.run(servidor_api.app, debug=True, port=5003, host='0.0.0.0')

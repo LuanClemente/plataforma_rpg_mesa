@@ -31,8 +31,8 @@ function SalasPage() {
     const fetchData = async () => {
       try {
         const [salasRes, fichasRes] = await Promise.all([
-          fetchWithAuth('http://127.0.0.1:5001/api/salas'),
-          fetchWithAuth('http://127.0.0.1:5001/api/fichas')
+          fetchWithAuth('http://127.0.0.1:5003/api/salas'),
+          fetchWithAuth('http://127.0.0.1:5003/api/fichas')
         ]);
         if (salasRes.ok) setSalas(await salasRes.json());
         if (fichasRes.ok) setFichas(await fichasRes.json());
@@ -54,7 +54,7 @@ function SalasPage() {
     event.preventDefault();
     setMensagem('Criando sala...');
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:5001/api/salas', {
+      const response = await fetchWithAuth('http://127.0.0.1:5003/api/salas', {
         method: 'POST',
         body: JSON.stringify({ nome: novaSalaNome, senha: novaSalaSenha }),
       });
@@ -64,7 +64,7 @@ function SalasPage() {
         setNovaSalaNome('');
         setNovaSalaSenha('');
         // Após criar, busca a lista de salas novamente para atualizar a tela.
-        const salasRes = await fetchWithAuth('http://127.0.0.1:5001/api/salas');
+        const salasRes = await fetchWithAuth('http://127.0.0.1:5003/api/salas');
         if (salasRes.ok) setSalas(await salasRes.json());
       }
     } catch (error) { setMensagem("Erro de conexão ao criar sala."); }
@@ -94,7 +94,7 @@ function SalasPage() {
   const handlePasswordSubmit = async (senhaDigitada) => {
     if (!selectedSala) return;
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:5001/api/salas/verificar-senha', {
+      const response = await fetchWithAuth('http://127.0.0.1:5003/api/salas/verificar-senha', {
         method: 'POST',
         body: JSON.stringify({ sala_id: selectedSala.id, senha: senhaDigitada }),
       });

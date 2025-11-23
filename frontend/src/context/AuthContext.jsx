@@ -3,6 +3,7 @@
 // Importa as ferramentas necessárias do React e do React Router.
 import { createContext, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import API_BASE_URL from '../config/api';
 
 // Cria o Contexto (o "molde" do nosso quadro de avisos global).
 const AuthContext = createContext(null);
@@ -18,13 +19,13 @@ const AuthContext = createContext(null);
 const parseJwt = (token) => {
   try {
     // 1. Divide o token em [header, payload, signature]
-    const base64Url = token.split('.')[1]; 
+    const base64Url = token.split('.')[1];
     // 2. Converte o formato Base64URL para Base64 padrão
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/'); 
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
     // 3. Decodifica de Base64 para uma string JSON
-    const jsonPayload = atob(base64); 
+    const jsonPayload = atob(base64);
     // 4. Converte a string JSON em um objeto
-    return JSON.parse(jsonPayload); 
+    return JSON.parse(jsonPayload);
   } catch (e) {
     // Se o token for inválido ou malformado, retorna nulo
     console.error("Erro ao decodificar token:", e);
@@ -34,14 +35,14 @@ const parseJwt = (token) => {
 
 // Cria o componente Provedor, que vai gerenciar o estado de autenticação
 export function AuthProvider({ children }) {
-  
+
   // O estado 'user' guardará a informação do usuário logado.
   // A função dentro do useState é executada apenas na primeira vez que o app carrega.
   const [user, setUser] = useState(() => {
-    
+
     // Procura por um "crachá" (token) salvo no localStorage do navegador.
     const token = localStorage.getItem('authToken');
-    
+
     // Se não encontrar o token, o usuário está deslogado.
     if (!token) {
       return null;
@@ -78,8 +79,7 @@ export function AuthProvider({ children }) {
   const login = async (username, password) => {
     try {
       // Faz a requisição para a API de login.
-      // (Seu backend estava na porta 5001, mantive isso)
-      const response = await fetch('http://127.0.0.1:5001/api/login', {
+      const response = await fetch(`${API_BASE_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -90,7 +90,7 @@ export function AuthProvider({ children }) {
       // --- [MUDANÇA PRINCIPAL] ---
       // Se a resposta indicar sucesso E contiver um token E um role...
       if (data.sucesso && data.token && data.role) {
-        
+
         // 1. GUARDA O TOKEN: Salvamos o token no localStorage
         localStorage.setItem('authToken', data.token);
 
@@ -105,9 +105,9 @@ export function AuthProvider({ children }) {
           name: userData.name, // <-- O 'name' veio do token decodificado
           id: userData.sub     // <-- O 'id' veio do token decodificado
         });
-        
-        // 4. REDIRECIONA: Leva o usuário para a página principal do app.
-        navigate('/home');
+
+        // 4. REDIRECIONA: Leva o usuário para a página Cantigas do Aventureiro.
+        navigate('/cantigas');
       }
       // --- FIM DA MUDANÇA ---
 
@@ -134,7 +134,7 @@ export function AuthProvider({ children }) {
   const fetchWithAuth = async (url, options = {}) => {
     // Pega o token salvo no localStorage.
     const token = localStorage.getItem('authToken');
-    
+
     // Prepara os cabeçalhos da requisição
     const headers = {
       ...options.headers,
@@ -148,7 +148,7 @@ export function AuthProvider({ children }) {
     if (response.status === 401) {
       logout();
     }
-    
+
     return response;
   };
 

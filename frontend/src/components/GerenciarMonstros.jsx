@@ -48,7 +48,7 @@ function GerenciarMonstros() {
     try {
       // Usamos 'fetch' normal aqui, pois a rota GET é pública (Bestiário)
       // (Se a sua rota GET /api/monstros for protegida, troque 'fetch' por 'fetchWithAuth')
-      const response = await fetch('http://127.0.0.1:5001/api/monstros');
+      const response = await fetch('http://127.0.0.1:5003/api/monstros');
       if (!response.ok) {
         throw new Error('Falha ao buscar monstros');
       }
@@ -110,8 +110,8 @@ function GerenciarMonstros() {
     // Define a URL e o Método baseado se estamos editando ou criando
     const isEditing = monstroEmEdicao !== null;
     const url = isEditing 
-      ? `http://127.0.0.1:5001/api/monstros/${monstroEmEdicao.id}` // URL de Update
-      : `http://127.0.0.1:5001/api/monstros`; // URL de Create
+      ? `http://127.0.0.1:5003/api/monstros/${monstroEmEdicao.id}` // URL de Update
+      : `http://127.0.0.1:5003/api/monstros`; // URL de Create
       
     const method = isEditing ? 'PUT' : 'POST';
 
@@ -144,7 +144,7 @@ function GerenciarMonstros() {
     // Pede confirmação antes de apagar
     if (window.confirm("Tem certeza que deseja apagar este monstro da base de dados?")) {
       try {
-        const url = `http://127.0.0.1:5001/api/monstros/${monstroId}`;
+        const url = `http://127.0.0.1:5003/api/monstros/${monstroId}`;
         
         // Usa 'fetchWithAuth' pois Apagar é uma rota protegida
         const response = await fetchWithAuth(url, {

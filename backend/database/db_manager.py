@@ -850,3 +850,123 @@ def buscar_historico_chat(sala_id):
     except Exception as e:
         print(f"Erro ao buscar histórico do chat: {e}")
         return []
+
+# --- Funções para 'Cantigas do Aventureiro' (Dashboard) ---
+
+def buscar_dados_cantigas(usuario_id):
+    """
+    Busca estatísticas do usuário:
+    - Tempo total de aventura (em segundos)
+    - Quantidade de fichas ativas
+    - Quantidade de salas visitadas (histórico único)
+    """
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            conexao.row_factory = sqlite3.Row
+            cursor = conexao.cursor()
+            
+            # 1. Tempo de Aventura
+            cursor.execute("SELECT tempo_aventura_segundos FROM usuarios WHERE id = ?", (usuario_id,))
+            tempo_res = cursor.fetchone()
+            tempo_total = tempo_res['tempo_aventura_segundos'] if tempo_res else 0
+            
+            # 2. Fichas Ativas
+            cursor.execute("SELECT COUNT(*) as total FROM fichas_personagem WHERE usuario_id = ?", (usuario_id,))
+            fichas_res = cursor.fetchone()
+            total_fichas = fichas_res['total'] if fichas_res else 0
+            
+            # 3. Salas Visitadas (Total Histórico)
+            cursor.execute("SELECT COUNT(DISTINCT sala_id) as total FROM historico_salas WHERE usuario_id = ?", (usuario_id,))
+            salas_res = cursor.fetchone()
+            total_salas = salas_res['total'] if salas_res else 0
+            
+            return {
+                "tempo_aventura_segundos": tempo_total,
+                "total_fichas": total_fichas,
+                "total_salas_visitadas": total_salas
+            }
+    except Exception as e:
+        print(f"Erro ao buscar dados das cantigas: {e}")
+        return None
+
+def buscar_historico_salas(usuario_id):
+    """
+    Busca as últimas 5 salas visitadas pelo usuário.
+    Retorna: Nome da Sala, Nome da Ficha usada, Data de Acesso.
+    """
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            conexao.row_factory = sqlite3.Row
+            cursor = conexao.cursor()
+            
+            cursor.execute("""
+                SELECT 
+                    s.id as sala_id,
+                    s.nome as sala_nome,
+                    f.nome_personagem as ficha_nome,
+                    h.data_acesso
+                FROM historico_salas h
+                JOIN salas s ON h.sala_id = s.id
+                LEFT JOIN fichas_personagem f ON h.ficha_id = f.id
+                WHERE h.usuario_id = ?
+                ORDER BY h.data_acesso DESC
+                LIMIT 5
+            """, (usuario_id,))
+            
+            historico = [dict(row) for row in cursor.fetchall()]
+            return historico
+    except Exception as e:
+        print(f"Erro ao buscar histórico de salas: {e}")
+        return []
+
+def registrar_acesso_sala(usuario_id, sala_id, ficha_id=None):
+    """
+    Registra que o usuário entrou em uma sala.
+    Atualiza o timestamp se já existir registro recente (opcional, aqui vamos sempre inserir novo para histórico).
+    """
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            cursor.execute("""
+                INSERT INTO historico_salas (usuario_id, sala_id, ficha_id)
+                VALUES (?, ?, ?)
+            """, (usuario_id, sala_id, ficha_id))
+            return True
+    except Exception as e:
+        print(f"Erro ao registrar acesso à sala: {e}")
+        return False
+
+def atualizar_credenciais_usuario(usuario_id, novo_nome, nova_senha):
+    """
+    Atualiza o nome de usuário e/ou senha.
+    """
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            
+            updates = []
+            params = []
+            
+            if novo_nome:
+                updates.append("nome_usuario = ?")
+                params.append(novo_nome)
+            
+            if nova_senha:
+                senha_bytes = nova_senha.encode('utf-8')
+                senha_hash = bcrypt.hashpw(senha_bytes, bcrypt.gensalt())
+                updates.append("senha_hash = ?")
+                params.append(senha_hash)
+            
+            if not updates:
+                return False
+            
+            params.append(usuario_id)
+            query = f"UPDATE usuarios SET {', '.join(updates)} WHERE id = ?"
+            
+            cursor.execute(query, params)
+            return True
+    except sqlite3.IntegrityError:
+        return False # Nome de usuário já existe
+    except Exception as e:
+        print(f"Erro ao atualizar credenciais: {e}")
+        return False

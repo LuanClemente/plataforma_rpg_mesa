@@ -635,3 +635,193 @@ body.login-page-body #root {
 }
 .btn-salvar:hover { background-color: #218838; }
 .btn-cancelar:hover { background-color: #5a6268; }
+
+/* --- CANTIGAS DO AVENTUREIRO (DASHBOARD) --- */
+.cantigas-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+.cantigas-header {
+  margin-bottom: 3rem;
+}
+.cantigas-header h1 {
+  font-size: 3.5rem;
+  margin-bottom: 0.5rem;
+}
+.cantigas-header .subtitle {
+  font-size: 1.2rem;
+  color: #999;
+  font-style: italic;
+}
+
+.cantigas-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .cantigas-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cantigas-card {
+  background-color: rgba(42, 42, 42, 0.9);
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  transition: transform 0.2s, border-color 0.2s;
+}
+.cantigas-card:hover {
+  transform: translateY(-5px);
+  border-color: #c59d5f;
+}
+.cantigas-card h2 {
+  margin-top: 0;
+  border-bottom: 1px solid #555;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Stats Card */
+.stats-row {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+.stat-item {
+  display: flex;
+  flex-direction: column;
+}
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #c59d5f;
+}
+.stat-label {
+  font-size: 1rem;
+  color: #ccc;
+}
+
+/* History Card */
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #333;
+}
+.history-item:last-child {
+  border-bottom: none;
+}
+.history-info {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+}
+.history-info strong {
+  font-size: 1.2rem;
+  color: #e0e0e0;
+}
+.history-info span {
+  font-size: 0.9rem;
+  color: #999;
+}
+.btn-adventure {
+  background-color: #ab4e4e;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'MedievalSharp', cursive;
+  transition: background-color 0.2s;
+}
+.btn-adventure:hover {
+  background-color: #c96d6d;
+}
+
+/* Settings Card */
+.settings-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.settings-card .form-group {
+  text-align: left;
+}
+.settings-card label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #c59d5f;
+}
+.settings-card input {
+  width: 100%;
+  padding: 0.8rem;
+  background-color: #1a1a1a;
+  border: 1px solid #555;
+  color: #e0e0e0;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+.btn-save {
+  background-color: #c59d5f;
+  color: #111;
+  border: none;
+  padding: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-top: 1rem;
+  font-family: 'MedievalSharp', cursive;
+}
+.btn-save:hover {
+  background-color: #dcb98a;
+}
+.form-msg {
+  margin-top: 1rem;
+  font-weight: bold;
+  color: #28a745;
+}
+
+/* Donation Card */
+.donation-text {
+  font-style: italic;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+.qr-code-placeholder {
+  background-color: #fff;
+  padding: 1rem;
+  display: inline-block;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+.fake-qr {
+  width: 150px;
+  height: 150px;
+  background-color: #eee;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 2px dashed #333;
+  font-family: 'Arial', sans-serif;
+  font-size: 0.8rem;
+}
+.heartfelt-msg {
+  font-size: 0.9rem;
+  color: #999;
+  margin-top: 1rem;
+}

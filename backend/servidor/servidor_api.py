@@ -68,7 +68,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'uma-chave-secreta-muito-forte-e-dificil-de-adivinhar-12345' 
 
 # --- CONFIGURAÇÃO DE CORS (SUA SOLUÇÃO FUNCIONAL) ---
-CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
+CORS(app, origins=["http://localhost:5173", "http://localhost:5174"], supports_credentials=True)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # --- DECORATOR DE AUTENTICAÇÃO JWT ---
