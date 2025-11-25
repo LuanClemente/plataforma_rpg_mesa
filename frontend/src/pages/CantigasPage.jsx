@@ -16,6 +16,15 @@ function CantigasPage() {
     const [novaSenha, setNovaSenha] = useState('');
     const [msgCredenciais, setMsgCredenciais] = useState('');
 
+    // Efeito para gerenciar o fundo da página
+    useEffect(() => {
+        const classeFundo = 'cantigas-page-body';
+        document.body.classList.add(classeFundo);
+        return () => {
+            document.body.classList.remove(classeFundo);
+        };
+    }, []);
+
     useEffect(() => {
         const fetchData = async () => {
             try {

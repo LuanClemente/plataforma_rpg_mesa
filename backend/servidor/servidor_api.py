@@ -777,7 +777,7 @@ def handle_dar_xp(data):
 
 # --- INICIALIZAÇÃO DO SERVIDOR ---
 if __name__ == '__main__':
-    print("Iniciando o servidor Flask com SocketIO via Eventlet na porta 5001...")
+    print("Iniciando o servidor Flask com SocketIO via Eventlet na porta 5003...")
     import eventlet
     # CORREÇÃO: Usar porta 5001 consistentemente
-    eventlet.wsgi.server(eventlet.listen(('', 5001)), app)
+    eventlet.wsgi.server(eventlet.listen(('', 5003)), app)
