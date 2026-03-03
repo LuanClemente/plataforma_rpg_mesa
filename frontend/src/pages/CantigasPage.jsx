@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { backgrounds } from '../assets/backgrounds';
 
 function CantigasPage() {
     const { user, logout } = useAuth();
@@ -18,11 +19,11 @@ function CantigasPage() {
 
     // Efeito para gerenciar o fundo da página
     useEffect(() => {
-        const classeFundo = 'cantigas-page-body';
-        document.body.classList.add(classeFundo);
-        return () => {
-            document.body.classList.remove(classeFundo);
-        };
+        document.body.style.backgroundImage = `url(${backgrounds.cantigas})`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+        document.body.style.backgroundAttachment = 'fixed';
+        return () => { document.body.style.backgroundImage = ''; };
     }, []);
 
     useEffect(() => {

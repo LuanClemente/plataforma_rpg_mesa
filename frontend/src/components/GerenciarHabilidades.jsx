@@ -69,12 +69,90 @@ function GerenciarHabilidades() {
 
   
   // --- Funções de Manipulação do Formulário e Modal (sem alterações) ---
-  const handleInputChange = (e) => { /* ... */ };
-  const handleAbrirModalCriar = () => { /* ... */ };
-  const handleAbrirModalEditar = (habilidade) => { /* ... */ };
-  const handleFecharModal = () => { /* ... */ };
-  const handleSubmitFormulario = async (e) => { /* ... */ };
-  const handleApagar = async (habilidadeId) => { /* ... */ };
+  // --- Funções de Manipulação do Formulário e Modal ---
+  
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === 'custo_mana' ? Number(value) : value,
+    }));
+  };
+
+  const handleAbrirModalCriar = () => {
+    setFormData(ESTADO_INICIAL_FORMULARIO);
+    setHabilidadeEmEdicao(null);
+    setIsModalOpen(true);
+  };
+
+  const handleAbrirModalEditar = (habilidade) => {
+    setFormData({
+      nome: habilidade.nome,
+      descricao: habilidade.descricao,
+      efeito: habilidade.efeito,
+      custo_mana: habilidade.custo_mana,
+    });
+    setHabilidadeEmEdicao(habilidade);
+    setIsModalOpen(true);
+  };
+
+  const handleFecharModal = () => {
+    setIsModalOpen(false);
+    setFormData(ESTADO_INICIAL_FORMULARIO);
+    setHabilidadeEmEdicao(null);
+  };
+
+  const handleSubmitFormulario = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      const url = habilidadeEmEdicao 
+        ? `http://127.0.0.1:5003/api/habilidades/${habilidadeEmEdicao.id}`
+        : 'http://127.0.0.1:5003/api/habilidades';
+      
+      const method = habilidadeEmEdicao ? 'PUT' : 'POST';
+      
+      const response = await fetchWithAuth(url, {
+        method: method,
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao salvar habilidade');
+      }
+
+      await fetchHabilidades();
+      handleFecharModal();
+    } catch (err) {
+      console.error("GerenciarHabilidades: Erro ao salvar:", err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleApagar = async (habilidadeId) => {
+    if (!window.confirm("Tem certeza que deseja apagar esta habilidade?")) return;
+
+    setIsLoading(true);
+    try {
+      const response = await fetchWithAuth(`http://127.0.0.1:5003/api/habilidades/${habilidadeId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao apagar habilidade');
+      }
+
+      await fetchHabilidades();
+    } catch (err) {
+      console.error("GerenciarHabilidades: Erro ao apagar:", err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   
   // --- Renderização do Componente (JSX) ---

@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { backgrounds } from '../assets/backgrounds';
 
 // --- Constantes de Configuração do Jogo ---
 const ATRIBUTOS_BASE_AVANCADO = { "Força": 8, "Destreza": 8, "Constituição": 8, "Inteligência": 8, "Sabedoria": 8, "Carisma": 8 };
@@ -50,10 +51,13 @@ function FichasPage() {
   // Este useEffect gerencia a classe CSS no body para o fundo da página.
   useEffect(() => {
     // Adiciona a classe quando o componente FichasPage é montado.
-    document.body.classList.add('fichas-page-body');
+    document.body.style.backgroundImage = `url(${backgrounds.fichas})`;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundAttachment = 'fixed';
     // A função de limpeza remove a classe quando o componente é desmontado (navega para outra página).
     return () => {
-      document.body.classList.remove('fichas-page-body');
+      document.body.style.backgroundImage = '';
     };
   }, []); // O array vazio garante que o efeito só rode na montagem e desmontagem.
 

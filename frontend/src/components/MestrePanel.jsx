@@ -1,93 +1,188 @@
 // frontend/src/components/MestrePanel.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-/**
- * Este componente renderiza o painel de ferramentas do Mestre,
- * como a distribuição de XP.
- * Recebe o 'socket', 'salaId' e a lista de 'jogadores' como props.
- */
 function MestrePanel({ socket, salaId, jogadores }) {
-  // Estado para a quantidade de XP a ser dada.
+  // --- XP ---
   const [xpAmount, setXpAmount] = useState(100);
-  // Estado para o ID da ficha alvo (ou 'all' para todos).
   const [targetFichaId, setTargetFichaId] = useState('all');
-  // Estado para feedback (ex: "XP enviado!").
-  const [mensagemMestre, setMensagemMestre] = useState('');
+  const [msgXp, setMsgXp] = useState('');
 
-  // Função chamada ao clicar no botão "Dar XP".
-  const handleDarXp = (e) => {
-    e.preventDefault();
-    // Verifica se temos uma conexão de socket ativa e uma quantidade de XP válida.
+  // --- Passar Coroa ---
+  const [coronaAlvo, setCoronaAlvo] = useState('');
+  const [msgCorona, setMsgCorona] = useState('');
+
+  // --- Dar Item ---
+  const [itensDisp, setItensDisp] = useState([]);
+  const [itemSelecionado, setItemSelecionado] = useState('');
+  const [itemAlvo, setItemAlvo] = useState('');
+  const [msgItem, setMsgItem] = useState('');
+
+  const jogadores_players = jogadores.filter(j => j.role === 'player');
+
+  // Buscar itens da Ferraria Arcana para o select
+  useEffect(() => {
+    fetch('http://127.0.0.1:5003/api/itens')
+      .then(r => r.json())
+      .then(data => {
+        setItensDisp(data);
+        if (data.length > 0) setItemSelecionado(data[0].nome);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Inicializar alvos quando jogadores mudarem
+  useEffect(() => {
+    if (jogadores_players.length > 0) {
+      if (!coronaAlvo) setCoronaAlvo(jogadores_players[0].ficha_id);
+      if (!itemAlvo) setItemAlvo(jogadores_players[0].ficha_id);
+    }
+  }, [jogadores]);
+
+  // Feedback temporário
+  const feedback = (setter, msg, delay = 3000) => {
+    setter(msg);
+    setTimeout(() => setter(''), delay);
+  };
+
+  const handleDarXp = () => {
     if (!socket || !salaId || xpAmount <= 0) {
-      setMensagemMestre("Erro: Conexão perdida ou XP inválido.");
+      feedback(setMsgXp, '❌ Conexão perdida ou XP inválido.');
       return;
     }
-
-    // Pega o token para autenticar o Mestre no backend.
     const token = localStorage.getItem('authToken');
-    
-    // Monta o "pacote de dados" (payload) para enviar ao servidor.
-    const payload = {
-      token,
-      sala_id: salaId,
-      alvo_id: targetFichaId, // "all" ou o ID da ficha específica.
-      quantidade: parseInt(xpAmount, 10), // Garante que é um número.
-    };
-
-    console.log("Emitindo 'mestre_dar_xp' com payload:", payload);
-    // Emite o evento 'mestre_dar_xp' para o servidor WebSocket.
-    socket.emit('mestre_dar_xp', payload);
-
-    // Fornece feedback imediato para o Mestre.
-    setMensagemMestre(`${xpAmount} XP distribuído!`);
-    setTimeout(() => setMensagemMestre(''), 3000); // Limpa a mensagem após 3 segundos.
+    socket.emit('mestre_dar_xp', {
+      token, sala_id: salaId,
+      alvo_id: targetFichaId,
+      quantidade: parseInt(xpAmount, 10),
+    });
+    feedback(setMsgXp, `✅ ${xpAmount} XP distribuído!`);
   };
-  
+
+  const handlePassarCoroa = () => {
+    if (!socket || !coronaAlvo) {
+      feedback(setMsgCorona, '❌ Selecione um jogador.');
+      return;
+    }
+    if (!window.confirm('Tem certeza? Você deixará de ser Mestre!')) return;
+    const token = localStorage.getItem('authToken');
+    socket.emit('mestre_passar_coroa', {
+      token, sala_id: salaId,
+      alvo_ficha_id: coronaAlvo,
+    });
+    feedback(setMsgCorona, '👑 Coroa transferida!');
+  };
+
+  const handleDarItem = () => {
+    if (!socket || !itemSelecionado || !itemAlvo) {
+      feedback(setMsgItem, '❌ Selecione item e jogador.');
+      return;
+    }
+    const token = localStorage.getItem('authToken');
+    const item = itensDisp.find(i => i.nome === itemSelecionado);
+    socket.emit('mestre_dar_item', {
+      token, sala_id: salaId,
+      alvo_ficha_id: itemAlvo,
+      nome_item: item?.nome || itemSelecionado,
+      descricao_item: item?.descricao || '',
+    });
+    feedback(setMsgItem, `✅ "${itemSelecionado}" enviado!`);
+  };
+
   return (
     <div className="mestre-panel-container">
-      <h2>Painel do Mestre</h2>
-      
-      {/* Formulário de XP */}
-      <form onSubmit={handleDarXp} className="mestre-form">
-        <h3>Distribuir Experiência</h3>
-        <div className="form-group">
-          <label htmlFor="xpAmount">Quantidade de XP</label>
-          <input
-            type="number"
-            id="xpAmount"
-            value={xpAmount}
-            onChange={(e) => setXpAmount(e.target.value)}
-          />
+
+      {/* ---- XP ---- */}
+      <div className="mestre-secao">
+        <span className="mestre-secao-titulo">⭐ Distribuir XP</span>
+        <div className="mestre-secao-controles">
+          <div className="mestre-campo">
+            <label>Quantidade</label>
+            <input type="number" value={xpAmount}
+              onChange={e => setXpAmount(e.target.value)}
+              style={{ width: '90px' }} />
+          </div>
+          <div className="mestre-campo">
+            <label>Alvo</label>
+            <select value={targetFichaId} onChange={e => setTargetFichaId(e.target.value)}>
+              <option value="all">— Todos —</option>
+              {jogadores_players.map(j => (
+                <option key={j.ficha_id} value={j.ficha_id}>{j.nome_personagem}</option>
+              ))}
+            </select>
+          </div>
+          <button onClick={handleDarXp} className="mestre-btn-acao">Dar XP</button>
         </div>
-        
-        <div className="form-group">
-          <label htmlFor="targetPlayer">Alvo</label>
-          {/* O seletor de alvo, agora funcional! */}
-          <select 
-            id="targetPlayer" 
-            value={targetFichaId} 
-            onChange={(e) => setTargetFichaId(e.target.value)}
-          >
-            {/* Opção padrão para "Todos" */}
-            <option value="all">-- Todos os Jogadores --</option>
-            
-            {/* Mapeia a lista de 'jogadores' recebida via props. */}
-            {jogadores
-              // Filtramos para mostrar apenas jogadores (não o mestre).
-              .filter(jogador => jogador.role === 'player')
-              // Criamos uma <option> para cada jogador.
-              .map(jogador => (
-                <option key={jogador.ficha_id} value={jogador.ficha_id}>
-                  {jogador.nome_personagem}
-                </option>
-            ))}
-          </select>
+        {msgXp && <span className="mestre-feedback">{msgXp}</span>}
+      </div>
+
+      {/* ---- DAR ITEM ---- */}
+      <div className="mestre-secao">
+        <span className="mestre-secao-titulo">🎁 Dar Item</span>
+        <div className="mestre-secao-controles">
+          <div className="mestre-campo">
+            <label>Item</label>
+            <select value={itemSelecionado} onChange={e => setItemSelecionado(e.target.value)}>
+              {itensDisp.length === 0
+                ? <option value="">Nenhum item cadastrado</option>
+                : itensDisp.map(i => (
+                    <option key={i.id} value={i.nome}>{i.nome}</option>
+                  ))
+              }
+            </select>
+          </div>
+          <div className="mestre-campo">
+            <label>Para</label>
+            <select value={itemAlvo} onChange={e => setItemAlvo(e.target.value)}>
+              {jogadores_players.length === 0
+                ? <option value="">Sem jogadores</option>
+                : jogadores_players.map(j => (
+                    <option key={j.ficha_id} value={j.ficha_id}>{j.nome_personagem}</option>
+                  ))
+              }
+            </select>
+          </div>
+          <button onClick={handleDarItem} className="mestre-btn-acao">Dar Item</button>
         </div>
-        
-        <button type="submit" className="login-button">Dar XP</button>
-        {/* Exibe a mensagem de feedback para o Mestre */}
-        {mensagemMestre && <p className="feedback-message" style={{fontSize: '0.9rem'}}>{mensagemMestre}</p>}
-      </form>
+        {msgItem && <span className="mestre-feedback">{msgItem}</span>}
+      </div>
+
+      {/* ---- PASSAR COROA ---- */}
+      <div className="mestre-secao">
+        <span className="mestre-secao-titulo">👑 Passar Coroa</span>
+        <div className="mestre-secao-controles">
+          <div className="mestre-campo">
+            <label>Novo Mestre</label>
+            <select value={coronaAlvo} onChange={e => setCoronaAlvo(e.target.value)}>
+              {jogadores_players.length === 0
+                ? <option value="">Sem jogadores</option>
+                : jogadores_players.map(j => (
+                    <option key={j.ficha_id} value={j.ficha_id}>{j.nome_personagem}</option>
+                  ))
+              }
+            </select>
+          </div>
+          <button onClick={handlePassarCoroa}
+            className="mestre-btn-acao"
+            style={{ background: 'linear-gradient(135deg, #6b3a3a, #9e5050)', borderColor: '#9e5050' }}>
+            Transferir
+          </button>
+        </div>
+        {msgCorona && <span className="mestre-feedback">{msgCorona}</span>}
+      </div>
+
+      {/* ---- JOGADORES ---- */}
+      <div className="mestre-secao">
+        <span className="mestre-secao-titulo">👥 Online ({jogadores_players.length})</span>
+        <div className="mestre-jogadores-lista">
+          {jogadores_players.length === 0
+            ? <span style={{ color: '#777', fontSize: '0.85rem' }}>Nenhum jogador</span>
+            : jogadores_players.map((j, i) => (
+                <span key={i} className="mestre-jogador-tag">⚔ {j.nome_personagem}</span>
+              ))
+          }
+        </div>
+      </div>
+
     </div>
   );
 }

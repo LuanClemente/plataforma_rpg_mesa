@@ -2,7 +2,7 @@
 
 // Importa as ferramentas necessárias do React e de bibliotecas externas.
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom'; // Para ler o ID da sala da URL.
+import { useParams, useNavigate } from 'react-router-dom'; // Para ler o ID da sala da URL.
 import io from 'socket.io-client'; // A biblioteca cliente para se comunicar via WebSockets.
 import { useAuth } from '../context/AuthContext'; // Importa o hook para usar o fetchWithAuth.
 
@@ -11,11 +11,13 @@ import InGameFicha from '../components/InGameFicha';
 import Anotacoes from '../components/Anotacoes';
 import InventarioSala from '../components/InventarioSala';
 import ChatMessage from '../components/ChatMessage';
-import MestrePanel from '../components/MestrePanel'; // Importa o painel do Mestre.
+import MestrePanel from '../components/MestrePanel';
+import { backgrounds } from '../assets/backgrounds'; // Importa o painel do Mestre.
 
 function SalaPage() {
   // ------------------- ESTADOS & REFS -------------------
-  const { id: salaId } = useParams(); // Pega o ID da sala da URL (ex: /salas/1).
+  const { id: salaId } = useParams();
+  const navigate = useNavigate(); // Pega o ID da sala da URL (ex: /salas/1).
   const { fetchWithAuth } = useAuth(); // Função de fetch com autenticação.
 
   const [messages, setMessages] = useState([]);      // Guarda o histórico e novas mensagens do chat.
@@ -26,7 +28,14 @@ function SalaPage() {
   const [isMestre, setIsMestre] = useState(false);        // Guarda se o usuário atual é o Mestre da sala.
   const [jogadores, setJogadores] = useState([]);      // Guarda a lista de jogadores na sala.
   
-  const socketRef = useRef(null);                   // Mantém a instância do socket viva entre renderizações.
+  const socketRef = useRef(null);
+  const chatEndRef = useRef(null); // ref para auto-scroll                   // Mantém a instância do socket viva entre renderizações.
+
+
+  // Auto-scroll: rola o chat para baixo sempre que chegar nova mensagem
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   // ------------------- EFEITOS (LIFECYCLE) -------------------
 
@@ -96,9 +105,12 @@ function SalaPage() {
 
   // useEffect para gerenciar o fundo temático da página.
   useEffect(() => {
-    document.body.classList.add('sala-page-body');
+    document.body.style.backgroundImage = `url(${backgrounds.sala})`;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundAttachment = 'fixed';;
     return () => {
-      document.body.classList.remove('sala-page-body');
+      document.body.style.backgroundImage = '';;
     };
   }, []); // O array vazio garante que rode apenas uma vez.
 
@@ -186,24 +198,43 @@ function SalaPage() {
 
   // ------------------- RENDERIZAÇÃO -------------------
   return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* Barra de topo com navegação */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '1rem',
+        background: 'linear-gradient(180deg, #1a1208 0%, #0f0c06 100%)',
+        borderBottom: '2px solid #c59d5f',
+        padding: '0.5rem 1.5rem', flexShrink: 0
+      }}>
+        <button
+          onClick={() => navigate('/salas')}
+          style={{
+            background: 'rgba(197,157,95,0.15)', border: '1px solid #c59d5f',
+            color: '#c59d5f', fontFamily: "'MedievalSharp', cursive",
+            fontSize: '0.95rem', padding: '0.4rem 1rem', cursor: 'pointer',
+            borderRadius: '4px', transition: 'background 0.2s'
+          }}
+          onMouseEnter={e => e.target.style.background='rgba(197,157,95,0.3)'}
+          onMouseLeave={e => e.target.style.background='rgba(197,157,95,0.15)'}
+        >
+          ← Voltar às Salas
+        </button>
+        <span style={{ color: '#c59d5f', fontFamily: "'MedievalSharp', cursive", fontSize: '1.1rem' }}>
+          ⚔ Sala {salaId}
+        </span>
+        {isMestre && <span style={{ color: '#e0a030', fontSize: '0.9rem', marginLeft: 'auto' }}>👑 Modo Mestre</span>}
+      </div>
+    {/* ===== ÁREA PRINCIPAL: 4 colunas ===== */}
     <div className="sala-layout-grid">
       
-      {/* ----------- COLUNA ESQUERDA (Anotações e Painel do Mestre) ----------- */}
+      {/* ----------- COLUNA ESQUERDA: Anotações (tamanho igual ao chat) ----------- */}
       <div className="sala-coluna-anotacoes">
         <Anotacoes />
-        {/* Renderização Condicional: O Painel do Mestre SÓ aparece se 'isMestre' for true. */}
-        {isMestre && (
-          <MestrePanel 
-            socket={socketRef.current} 
-            salaId={salaId} 
-            jogadores={jogadores} 
-          />
-        )}
       </div>
 
       {/* ----------- COLUNA BOLSA DE ITENS ----------- */}
       <div className="sala-coluna-inventario">
-        <InventarioSala />
+        <InventarioSala socket={socketRef.current} />
       </div>
 
       {/* ----------- COLUNA CENTRAL (Ficha e Dados) ----------- */}
@@ -243,6 +274,7 @@ function SalaPage() {
                 message={typeof msg === 'string' ? msg : msg.error || 'Mensagem inválida'}
               />
             ))}
+            <div ref={chatEndRef} />
           </div>
           <form onSubmit={handleSendMessage} className="chat-form">
             <input
@@ -256,6 +288,19 @@ function SalaPage() {
         </div>
       </div>
       
+    </div>
+
+    {/* ===== PAINEL DO MESTRE: faixa inferior larga ===== */}
+    {isMestre && (
+      <div className="sala-mestre-bar">
+        <MestrePanel 
+          socket={socketRef.current} 
+          salaId={salaId} 
+          jogadores={jogadores} 
+        />
+      </div>
+    )}
+
     </div>
   );
 }

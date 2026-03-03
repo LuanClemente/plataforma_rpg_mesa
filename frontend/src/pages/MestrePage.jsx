@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import GerenciarMonstros from '../components/GerenciarMonstros';
 import GerenciarItens from '../components/GerenciarItens';
 import GerenciarHabilidades from '../components/GerenciarHabilidades';
+import { backgrounds } from '../assets/backgrounds';
 // -----------------------------
 
 // Estilos in-line para o container principal e as abas (sem alterações)

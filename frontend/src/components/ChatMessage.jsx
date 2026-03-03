@@ -1,62 +1,76 @@
 // frontend/src/components/ChatMessage.jsx
-
 import React from 'react';
 
-/**
- * Converte um texto com trechos em *asteriscos* para um array de elementos React.
- * Exemplo: "Eu ataco o *dragão* ferozmente!"
- * Resultado: Eu ataco o <strong>dragão</strong> ferozmente!
- */
-const parseMessage = (text) => {
-  if (typeof text !== 'string') return text; // Segurança extra contra tipos inesperados
+// Gera uma cor única e consistente para cada nome de remetente
+function corDoRemetente(nome) {
+  if (!nome) return '#c59d5f';
+  // Sistema: mensagens de sistema em cinza
+  if (nome === 'Sistema' || nome === '[Sistema]') return '#888';
+  
+  let hash = 0;
+  for (let i = 0; i < nome.length; i++) {
+    hash = nome.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  // Gera matiz variada, saturação e luminosidade fixas para legibilidade
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 70%, 68%)`;
+}
 
-  // Divide o texto em partes, separando trechos entre asteriscos
+// Extrai o remetente da mensagem (padrão: "[Nome]: mensagem" ou "[Sistema]: ...")
+function parsearMensagem(text) {
+  if (typeof text !== 'string') return { remetente: null, corpo: text };
+
+  // Padrão: "[Remetente]: mensagem"
+  const match = text.match(/^\[([^\]]+)\]:\s*(.*)/s);
+  if (match) {
+    return { remetente: match[1], corpo: match[2] };
+  }
+  // Padrão: "--- sistema ---"
+  if (text.startsWith('---') || text.startsWith('[Sistema]')) {
+    return { remetente: 'Sistema', corpo: text };
+  }
+  return { remetente: null, corpo: text };
+}
+
+// Converte *asteriscos* em negrito
+function parseBold(text) {
+  if (typeof text !== 'string') return text;
   const parts = text.split(/(\*[^*]+\*)/g);
-
-  return parts.map((part, index) => {
-    // Se a parte começa e termina com asterisco, trata como negrito
+  return parts.map((part, i) => {
     if (part.startsWith('*') && part.endsWith('*')) {
-      const innerText = part.slice(1, -1); // remove os asteriscos
-      return (
-        <strong key={index} className="chat-bold">
-          {innerText}
-        </strong>
-      );
+      return <strong key={i} className="chat-bold">{part.slice(1, -1)}</strong>;
     }
-    // Trecho normal, sem formatação especial
-    return <span key={index}>{part}</span>;
+    return <span key={i}>{part}</span>;
   });
-};
+}
 
-/**
- * Componente de exibição individual de mensagens do chat.
- * Pode lidar com:
- * - Strings simples
- * - Objetos com campos 'text', 'error', 'system', etc.
- * - Mensagens com trechos *em negrito*
- */
 function ChatMessage({ message }) {
-  // Define o conteúdo da mensagem dependendo do formato recebido
-  let content = '';
-
+  let texto = '';
   if (typeof message === 'string') {
-    content = message;
+    texto = message;
   } else if (typeof message === 'object' && message !== null) {
-    // Prioridade: erro > texto normal > resultado de dados > mensagem bruta
-    if (message.error) {
-      content = `⚠️ ${message.error}`;
-    } else if (message.text) {
-      content = message.text;
-    } else if (message.command && message.result !== undefined) {
-      content = `🎲 Rolagem ${message.command}: ${message.result}`;
-    } else {
-      content = JSON.stringify(message);
-    }
+    if (message.error) texto = `⚠️ ${message.error}`;
+    else if (message.text) texto = message.text;
+    else texto = JSON.stringify(message);
+  }
+
+  const { remetente, corpo } = parsearMensagem(texto);
+  const cor = corDoRemetente(remetente);
+
+  if (remetente) {
+    return (
+      <p className="chat-message">
+        <span style={{ color: cor, fontWeight: 'bold', marginRight: '4px' }}>
+          [{remetente}]:
+        </span>
+        <span className="chat-corpo">{parseBold(corpo)}</span>
+      </p>
+    );
   }
 
   return (
-    <p className="chat-message">
-      {parseMessage(content)}
+    <p className="chat-message chat-message-sistema">
+      {parseBold(corpo)}
     </p>
   );
 }

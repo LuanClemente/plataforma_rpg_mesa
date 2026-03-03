@@ -11,7 +11,7 @@ function ProtectedRoute({ children }) {
   if (!user) {
     // ...ele renderiza o componente <Navigate>, que redireciona o usuário para a página de login.
     // O 'replace' impede que o usuário use o botão "voltar" do navegador para acessar a página protegida.
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   // Se houver um usuário, ele simplesmente renderiza o conteúdo que deveria estar lá (os 'children').

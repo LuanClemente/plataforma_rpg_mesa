@@ -7,11 +7,12 @@ import { useAuth } from '../context/AuthContext';
 // Importa nossos componentes de modal.
 import PasswordModal from '../components/PasswordModal';
 import CharacterSelectionModal from '../components/CharacterSelectionModal';
+import { backgrounds } from '../assets/backgrounds';
 
 function SalasPage() {
   // --- Estados do Componente ---
   const navigate = useNavigate();
-  const { fetchWithAuth } = useAuth();
+  const { fetchWithAuth, user } = useAuth();
   
   const [salas, setSalas] = useState([]); // Guarda a lista de salas.
   const [fichas, setFichas] = useState([]); // Guarda a lista de fichas do usuário.
@@ -45,8 +46,11 @@ function SalasPage() {
 
   // useEffect para gerenciar o fundo temático da página.
   useEffect(() => {
-    document.body.classList.add('salas-page-body');
-    return () => { document.body.classList.remove('salas-page-body'); };
+    document.body.style.backgroundImage = `url(${backgrounds.salas})`;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundAttachment = 'fixed';;
+    return () => { document.body.style.backgroundImage = '';; };
   }, []);
 
   // Função para criar uma nova sala, chamada pelo formulário.
@@ -110,6 +114,23 @@ function SalasPage() {
     }
   };
 
+
+  // Exclui uma sala (apenas quem criou pode excluir)
+  const handleExcluirSala = async (salaId) => {
+    if (!window.confirm('Tem certeza que deseja excluir esta sala?')) return;
+    try {
+      const response = await fetchWithAuth(`http://127.0.0.1:5003/api/salas/${salaId}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      setMensagem(data.mensagem);
+      if (response.ok) {
+        const salasRes = await fetchWithAuth('http://127.0.0.1:5003/api/salas');
+        if (salasRes.ok) setSalas(await salasRes.json());
+      }
+    } catch (error) { setMensagem("Erro de conexão ao excluir sala."); }
+  };
+
   // --- Renderização do Componente ---
   return (
     <div>
@@ -159,6 +180,14 @@ function SalasPage() {
                 >
                   Entrar
                 </button>
+                {user?.role === 'mestre' && (
+                  <button
+                    className="delete-button"
+                    onClick={() => handleExcluirSala(sala.id)}
+                  >
+                    Excluir
+                  </button>
+                )}
               </div>
             </div>
           ))

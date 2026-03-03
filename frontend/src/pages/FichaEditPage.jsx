@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { backgrounds } from '../assets/backgrounds';
 
 function FichaEditPage() {
   const { id } = useParams(); 
@@ -33,10 +34,13 @@ function FichaEditPage() {
   // Este useEffect é responsável por gerenciar o estilo do <body>.
   useEffect(() => {
     // Adiciona a classe quando o componente FichaEditPage é montado.
-    document.body.classList.add('edit-ficha-page-body');
+    document.body.style.backgroundImage = `url(${backgrounds.editFicha})`;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundAttachment = 'fixed';
     // A função de limpeza remove a classe quando o componente é desmontado.
     return () => {
-      document.body.classList.remove('edit-ficha-page-body');
+      document.body.style.backgroundImage = '';
     };
   }, []); // O array vazio garante que o efeito só rode na montagem e desmontagem.
 

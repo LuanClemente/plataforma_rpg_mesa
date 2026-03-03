@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-function InventarioSala() {
+function InventarioSala({ socket }) {
   const [itens, setItens] = useState([]);
   const [nomeItem, setNomeItem] = useState('');
   const [descricaoItem, setDescricaoItem] = useState('');
@@ -34,6 +34,15 @@ function InventarioSala() {
   useEffect(() => {
     buscarInventario();
   }, [fichaId, salaId, fetchWithAuth]);
+  // Atualiza inventário quando o mestre der um item via WebSocket
+  useEffect(() => {
+    if (!socket) return;
+    const handler = () => buscarInventario();
+    socket.on('inventario_atualizado', handler);
+    return () => socket.off('inventario_atualizado', handler);
+  }, [socket, fichaId, salaId]);
+
+
 
   // Função para adicionar um novo item ao inventário.
   const handleAddItem = async (e) => {
