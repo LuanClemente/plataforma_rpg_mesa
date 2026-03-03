@@ -49,7 +49,7 @@ source venv/bin/activate  # Linux/Mac
 venv\Scripts\activate     # Windows
 
 # Instale as dependências
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 
 # Execute a aplicação
-flask run
+python -m backend.servidor.servidor_api
