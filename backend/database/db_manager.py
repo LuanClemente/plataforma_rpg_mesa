@@ -662,6 +662,23 @@ def listar_salas_disponiveis():
         print(f"Erro ao listar salas: {e}")
         return []
 
+
+def apagar_sala(sala_id, mestre_id):
+    """Apaga uma sala do banco, apenas se o usuário for o Mestre dela."""
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            # Verifica se a sala existe e pertence ao mestre
+            cursor.execute("SELECT id FROM salas WHERE id = ? AND mestre_id = ?", (sala_id, mestre_id))
+            if not cursor.fetchone():
+                return False  # Sala não encontrada ou sem permissão
+            cursor.execute("DELETE FROM salas WHERE id = ?", (sala_id,))
+            conexao.commit()
+            return cursor.rowcount > 0
+    except Exception as e:
+        print(f"Erro ao apagar sala: {e}")
+        return False
+
 def verificar_senha_da_sala(sala_id, senha_texto_puro):
     """Verifica se a senha fornecida para uma sala corresponde ao hash no DB."""
     try:
@@ -800,6 +817,22 @@ def adicionar_item_sala(ficha_id, sala_id, nome_item, descricao):
             return True
     except Exception as e:
         print(f"Erro ao adicionar item na sala: {e}")
+        return False
+
+
+def transferir_mestre_sala(sala_id, novo_mestre_id):
+    """Atualiza o mestre_id de uma sala para o novo mestre."""
+    try:
+        with sqlite3.connect(NOME_DB) as conexao:
+            cursor = conexao.cursor()
+            cursor.execute(
+                "UPDATE salas SET mestre_id = ? WHERE id = ?",
+                (novo_mestre_id, sala_id)
+            )
+            conexao.commit()
+            return cursor.rowcount > 0
+    except Exception as e:
+        print(f"Erro ao transferir mestre: {e}")
         return False
 
 def apagar_item_sala(item_id, ficha_id):

@@ -47,7 +47,9 @@ from ..database.db_manager import (
     adicionar_item_sala,
     apagar_item_sala,
     adicionar_xp_e_upar,        # <- Usada em handle_dar_xp
-    buscar_mestre_da_sala       # <- Usada em handle_join_room e handle_dar_xp
+    buscar_mestre_da_sala,      # <- Usada em handle_join_room e handle_dar_xp
+    apagar_sala,
+    transferir_mestre_sala
 )
 from ..core.rolador_de_dados import rolar_dados
 
@@ -417,6 +419,17 @@ def post_nova_sala(current_user_id):
     if sucesso: return jsonify({'sucesso': True, 'mensagem': 'Sala criada com sucesso!'}), 201
     else: return jsonify({'sucesso': False, 'mensagem': 'Nome de sala já existe ou erro ao criar.'}), 409
 
+
+@app.route("/api/salas/<int:sala_id>", methods=['DELETE'])
+@token_required
+def delete_sala(current_user_id, sala_id):
+    """Apaga uma sala. Apenas o Mestre criador pode excluir."""
+    sucesso = apagar_sala(sala_id, current_user_id)
+    if sucesso:
+        return jsonify({'sucesso': True, 'mensagem': 'Sala excluída com sucesso.'})
+    else:
+        return jsonify({'sucesso': False, 'mensagem': 'Sala não encontrada ou permissão negada.'}), 404
+
 @app.route("/api/salas/verificar-senha", methods=['POST'])
 @token_required
 def rota_verificar_senha_sala(current_user_id):
@@ -774,6 +787,121 @@ def handle_dar_xp(data):
     except Exception as e:
         print(f"Erro em handle_dar_xp: {e}")
         socketio.emit('mestre_error', {'mensagem': f'Erro ao processar XP: {e}'}, room=request.sid)
+
+
+@socketio.on('mestre_passar_coroa')
+def handle_passar_coroa(data):
+    """Mestre transfere seu cargo para outro jogador da sala."""
+    token = data.get('token')
+    sala_id = str(data.get('sala_id'))
+    alvo_ficha_id = data.get('alvo_ficha_id')  # ficha_id do novo mestre
+
+    if not all([token, sala_id, alvo_ficha_id]):
+        socketio.emit('mestre_error', {'mensagem': 'Dados incompletos.'}, room=request.sid)
+        return
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id = int(user_data['sub'])
+        mestre_id_da_sala = buscar_mestre_da_sala(sala_id)
+
+        if user_id != mestre_id_da_sala:
+            socketio.emit('mestre_error', {'mensagem': 'Apenas o Mestre atual pode passar a coroa.'}, room=request.sid)
+            return
+
+        # Encontrar o SID e user_id do alvo pelo ficha_id
+        alvo_info = None
+        alvo_sid = None
+        if sala_id in salas_ativas:
+            for sid, info in salas_ativas[sala_id].items():
+                if str(info.get('ficha_id')) == str(alvo_ficha_id):
+                    alvo_info = info
+                    alvo_sid = sid
+                    break
+
+        if not alvo_info or not alvo_sid:
+            socketio.emit('mestre_error', {'mensagem': 'Jogador alvo não encontrado na sala.'}, room=request.sid)
+            return
+
+        novo_mestre_user_id = alvo_info['user_id']
+        nome_novo_mestre = alvo_info['nome_personagem']
+        nome_mestre_atual = salas_ativas[sala_id][request.sid]['nome_personagem']
+
+        # Atualizar no banco
+        sucesso = transferir_mestre_sala(sala_id, novo_mestre_user_id)
+        if not sucesso:
+            socketio.emit('mestre_error', {'mensagem': 'Erro ao transferir no banco.'}, room=request.sid)
+            return
+
+        # Atualizar dicionário salas_ativas
+        salas_ativas[sala_id][request.sid]['role'] = 'player'
+        salas_ativas[sala_id][alvo_sid]['role'] = 'mestre'
+        salas_ativas[sala_id][alvo_sid]['ficha_id'] = None
+
+        # Notificar individualmente cada um
+        socketio.emit('status_mestre', {'isMestre': False}, room=request.sid)
+        socketio.emit('status_mestre', {'isMestre': True}, room=alvo_sid)
+
+        # Anunciar na sala
+        msg = f"--- 👑 {nome_mestre_atual} passou a coroa de Mestre para {nome_novo_mestre}! ---"
+        salvar_mensagem_chat(sala_id, 'Sistema', msg)
+        send(msg, to=sala_id)
+
+        # Atualizar lista de jogadores
+        socketio.emit('lista_jogadores_atualizada', list(salas_ativas[sala_id].values()), to=sala_id)
+
+    except Exception as e:
+        print(f"Erro em handle_passar_coroa: {e}")
+        socketio.emit('mestre_error', {'mensagem': f'Erro: {e}'}, room=request.sid)
+
+
+@socketio.on('mestre_dar_item')
+def handle_dar_item(data):
+    """Mestre dá um item (da Ferraria Arcana) para o inventário de um jogador."""
+    token = data.get('token')
+    sala_id = str(data.get('sala_id'))
+    alvo_ficha_id = data.get('alvo_ficha_id')
+    nome_item = data.get('nome_item')
+    descricao_item = data.get('descricao_item', '')
+
+    if not all([token, sala_id, alvo_ficha_id, nome_item]):
+        socketio.emit('mestre_error', {'mensagem': 'Dados incompletos para dar item.'}, room=request.sid)
+        return
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id = int(user_data['sub'])
+        mestre_id_da_sala = buscar_mestre_da_sala(sala_id)
+
+        if user_id != mestre_id_da_sala:
+            socketio.emit('mestre_error', {'mensagem': 'Apenas o Mestre pode dar itens.'}, room=request.sid)
+            return
+
+        sucesso = adicionar_item_sala(alvo_ficha_id, sala_id, nome_item, descricao_item)
+        if not sucesso:
+            socketio.emit('mestre_error', {'mensagem': 'Erro ao adicionar item no inventário.'}, room=request.sid)
+            return
+
+        # Descobrir nome do personagem alvo
+        nome_alvo = 'Jogador'
+        if sala_id in salas_ativas:
+            for sid, info in salas_ativas[sala_id].items():
+                if str(info.get('ficha_id')) == str(alvo_ficha_id):
+                    nome_alvo = info['nome_personagem']
+                    # Notificar o jogador para atualizar inventário
+                    socketio.emit('inventario_atualizado', {}, room=sid)
+                    break
+
+        msg = f"--- 🎁 {nome_alvo} recebeu o item: {nome_item}! ---"
+        salvar_mensagem_chat(sala_id, 'Sistema', msg)
+        send(msg, to=sala_id)
+
+        socketio.emit('mestre_feedback', {'mensagem': f'Item "{nome_item}" dado com sucesso!'}, room=request.sid)
+
+    except Exception as e:
+        print(f"Erro em handle_dar_item: {e}")
+        socketio.emit('mestre_error', {'mensagem': f'Erro: {e}'}, room=request.sid)
+
 
 # --- INICIALIZAÇÃO DO SERVIDOR ---
 if __name__ == '__main__':
