@@ -1,0 +1,1 @@
+# Este arquivo vazio transforma a pasta 'backend' em um pacote Python.
