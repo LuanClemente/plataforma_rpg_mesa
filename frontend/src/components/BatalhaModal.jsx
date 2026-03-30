@@ -267,6 +267,10 @@ export default function BatalhaModal({ socket, salaId, isMestre, onFechar }) {
     } catch {}
   }, [token]);
 
+  const [batalha,       setBatalha]       = useState(null); // público
+  const [batalhaMestre, setBatalhaMestre] = useState(null); // com HP monstros
+  const [mostrarSeletor, setMostrarSeletor] = useState(false);
+
   // Quando batalha chegar, descobrir meu ficha_id pelo sid (que vem do socket)
   useEffect(() => {
     if (!batalha || !socket) return;
@@ -275,12 +279,22 @@ export default function BatalhaModal({ socket, salaId, isMestre, onFechar }) {
     const eu = batalha.jogadores?.find(j => j.sid === mySid);
     if (eu) setMeuFichaId(eu.ficha_id);
   }, [batalha, socket]);
-
-  const [batalha,       setBatalha]       = useState(null); // público
-  const [batalhaMestre, setBatalhaMestre] = useState(null); // com HP monstros
-  const [mostrarSeletor, setMostrarSeletor] = useState(isMestre);
   const [pow,           setPow]           = useState(null);
   const [flashAlvo,     setFlashAlvo]     = useState(null);
+
+  useEffect(() => {
+    console.log('[BatalhaModal] mount', { isMestre });
+  }, []);
+
+  useEffect(() => {
+    console.log('[BatalhaModal] isMestre changed', isMestre);
+    setMostrarSeletor(isMestre);
+  }, [isMestre]);
+
+  useEffect(() => {
+    console.log('[BatalhaModal] mount', { isMestre, mostrarSeletor });
+  }, []);
+
   const [movendo,       setMovendo]       = useState(null);
   const [alvoSelecionado, setAlvoSelecionado] = useState(null);
   const [encerrarMenu,  setEncerrarMenu]  = useState(false);
@@ -294,6 +308,7 @@ export default function BatalhaModal({ socket, salaId, isMestre, onFechar }) {
   useEffect(() => {
     if (!socket) return;
     const onIniciada = (data) => {
+      console.log('[BatalhaModal] batalha_iniciada', data);
       setBatalha(data.batalha);
       if (isMestre) setBatalhaMestre(data.batalha_mestre);
       setMostrarSeletor(false);

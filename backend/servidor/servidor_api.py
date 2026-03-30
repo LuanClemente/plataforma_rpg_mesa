@@ -1,5 +1,7 @@
 # servidor/servidor_api.py
 
+print("--- LOADING servidor_api.py - VERSION 3 ---")
+
 # --- IMPORTS PRINCIPAIS ---
 from flask import Flask, jsonify, request, g # Adicionado 'g' para uso futuro potencial
 from flask_socketio import SocketIO, send, join_room, leave_room # Adicionado leave_room
@@ -12,6 +14,7 @@ import sys
 import os
 import bcrypt # Import bcrypt que faltava (usado em verificar_login, etc.)
 import sqlite3 # Import sqlite3 para get_db_connection
+from ..logging_config import log_conexao, log_evento_socket, log_batalha, log_erro, log_debug
 # --- IMPORTS DE MÓDulos INTERNOS ---
 # (Verificando se todas as funções usadas estão importadas)
 from ..database.db_manager import (
@@ -57,6 +60,7 @@ from ..database.db_manager import (
     verificar_banido
 )
 from ..core.rolador_de_dados import rolar_dados
+from ..database import esconderijo_db
 
 # --- FUNÇÃO AUXILIAR PARA CONEXÃO COM DB (SE NÃO TIVER NO DB_MANAGER) ---
 # Adicionando uma função genérica para obter a conexão, caso precise
@@ -75,7 +79,10 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'uma-chave-secreta-muito-forte-e-dificil-de-adivinhar-12345' 
 
 # --- CONFIGURAÇÃO DE CORS (SUA SOLUÇÃO FUNCIONAL) ---
-CORS(app, origins=["http://localhost:5173", "http://localhost:5174"], supports_credentials=True)
+CORS(app, 
+     resources={r"/api/*": {"origins": ["http://localhost:5173", "http://localhost:5174"]}}, 
+     allow_headers=["Content-Type", "x-access-token"],
+     supports_credentials=True)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # --- DECORATOR DE AUTENTICAÇÃO JWT ---
@@ -83,6 +90,10 @@ def token_required(f):
     """Verifica se o token JWT é válido antes de permitir acesso à rota."""
     @wraps(f)
     def decorated(*args, **kwargs):
+        # Adicionado para lidar com requisições preflight do CORS
+        if request.method == 'OPTIONS':
+            return '', 204
+            
         token = request.headers.get('x-access-token')
         if not token:
             return jsonify({'mensagem': 'Token (crachá) ausente!'}), 401
@@ -196,6 +207,336 @@ def get_habilidades():
 
 
 # --- ROTAS DE GERENCIAMENTO (ESCONDERIJO DO MESTRE) ---
+
+def _check_campanha_owner(campanha_id, user_id):
+    campanha = esconderijo_db.buscar_campanha(campanha_id)
+    if not campanha:
+        return None, (jsonify({'sucesso': False, 'mensagem': 'Campanha não encontrada.'}), 404)
+    if campanha['criador_id'] != user_id:
+        return None, (jsonify({'sucesso': False, 'mensagem': 'Acesso negado.'}), 403)
+    return campanha, None
+
+@app.route('/api/campanhas', methods=['GET'])
+@token_required
+def listar_campanhas(current_user_id):
+    campanhas = esconderijo_db.listar_campanhas(current_user_id)
+    return jsonify(campanhas)
+
+@app.route('/api/campanhas/<int:campanha_id>', methods=['GET'])
+@token_required
+def buscar_campanha_route(current_user_data, campanha_id):
+    user_id = int(current_user_data['sub'])
+    campanha, err = _check_campanha_owner(campanha_id, user_id)
+    if err: return err
+    return jsonify(campanha)
+
+@app.route('/api/campanhas', methods=['POST'])
+@token_required
+def criar_campanha_route(current_user_id):
+    dados = request.get_json() or {}
+    try:
+        campanha = esconderijo_db.criar_campanha(current_user_id, dados)
+        return jsonify({'sucesso': True, 'campanha': campanha}), 201
+    except Exception as e:
+        print(f'Erro ao criar campanha: {e}')
+        return jsonify({'sucesso': False, 'mensagem': 'Erro interno no servidor.'}), 500
+
+@app.route('/api/campanhas/<int:campanha_id>', methods=['PUT'])
+@token_required
+def atualizar_campanha_route(current_user_data, campanha_id):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(campanha_id, user_id)
+    if err: return err
+    dados = request.get_json() or {}
+    campanha = esconderijo_db.atualizar_campanha(campanha_id, user_id, dados)
+    if not campanha:
+        return jsonify({'sucesso': False, 'mensagem': 'Campanha não encontrada ou não atualizada.'}), 404
+    return jsonify({'sucesso': True, 'campanha': campanha})
+
+@app.route('/api/campanhas/<int:campanha_id>', methods=['DELETE'])
+@token_required
+def deletar_campanha_route(current_user_data, campanha_id):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(campanha_id, user_id)
+    if err: return err
+    sucesso = esconderijo_db.deletar_campanha(campanha_id, user_id)
+    if not sucesso:
+        return jsonify({'sucesso': False, 'mensagem': 'Campanha não encontrada.'}), 404
+    return jsonify({'sucesso': True, 'mensagem': 'Campanha deletada.'})
+
+# Subrecursos genericos
+def _rota_listar(campanha_id, fetch_fn, current_user_data):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(campanha_id, user_id)
+    if err: return err
+    return jsonify(fetch_fn(campanha_id))
+
+# mapas
+@app.route('/api/campanhas/<int:cid>/mapas', methods=['GET'])
+@token_required
+def listar_mapas_route(current_user_data, cid):
+    return _rota_listar(cid, esconderijo_db.listar_mapas, current_user_data)
+
+@app.route('/api/campanhas/<int:cid>/mapas', methods=['POST'])
+@token_required
+def criar_mapa_route(current_user_data, cid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    dados = request.get_json() or {}
+    mapa = esconderijo_db.criar_mapa(cid, dados)
+    return jsonify({'sucesso': True, 'mapa': mapa}), 201
+
+@app.route('/api/campanhas/<int:cid>/mapas/<int:mid>', methods=['PUT'])
+@token_required
+def atualizar_mapa_route(current_user_data, cid, mid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    dados = request.get_json() or {}
+    mapa = esconderijo_db.atualizar_mapa(mid, dados)
+    if not mapa:
+        return jsonify({'sucesso': False, 'mensagem': 'Mapa não encontrado.'}), 404
+    return jsonify({'sucesso': True, 'mapa': mapa})
+
+@app.route('/api/campanhas/<int:cid>/mapas/<int:mid>', methods=['DELETE'])
+@token_required
+def deletar_mapa_route(current_user_data, cid, mid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    if not esconderijo_db.deletar_mapa(mid, cid):
+        return jsonify({'sucesso': False, 'mensagem': 'Mapa não encontrado.'}), 404
+    return jsonify({'sucesso': True})
+
+@app.route('/api/campanhas/<int:cid>/mapas/<int:mid>/toggle', methods=['PATCH'])
+@token_required
+def toggle_mapa_route(current_user_data, cid, mid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    data = request.get_json() or {}
+    visivel = bool(data.get('visivel', 0))
+    mapa = esconderijo_db.toggle_mapa(mid, visivel)
+    return jsonify({'sucesso': True, 'mapa': mapa})
+
+# eventos
+@app.route('/api/campanhas/<int:cid>/eventos', methods=['GET'])
+@token_required
+def listar_eventos_route(current_user_data, cid):
+    return _rota_listar(cid, esconderijo_db.listar_eventos, current_user_data)
+
+@app.route('/api/campanhas/<int:cid>/eventos', methods=['POST'])
+@token_required
+def criar_evento_route(current_user_data, cid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    dados = request.get_json() or {}
+    evento = esconderijo_db.criar_evento(cid, dados)
+    return jsonify({'sucesso': True, 'evento': evento}), 201
+
+@app.route('/api/campanhas/<int:cid>/eventos/<int:eid>', methods=['PUT'])
+@token_required
+def atualizar_evento_route(current_user_data, cid, eid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    dados = request.get_json() or {}
+    evento = esconderijo_db.atualizar_evento(eid, dados)
+    if not evento:
+        return jsonify({'sucesso': False, 'mensagem': 'Evento não encontrado.'}), 404
+    return jsonify({'sucesso': True, 'evento': evento})
+
+@app.route('/api/campanhas/<int:cid>/eventos/<int:eid>', methods=['DELETE'])
+@token_required
+def deletar_evento_route(current_user_data, cid, eid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    if not esconderijo_db.deletar_evento(eid, cid):
+        return jsonify({'sucesso': False, 'mensagem': 'Evento não encontrado.'}), 404
+    return jsonify({'sucesso': True})
+
+@app.route('/api/campanhas/<int:cid>/eventos/<int:eid>/toggle', methods=['PATCH'])
+@token_required
+def toggle_evento_route(current_user_data, cid, eid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    data = request.get_json() or {}
+    visivel = bool(data.get('visivel', 0))
+    evento = esconderijo_db.toggle_evento(eid, visivel)
+    return jsonify({'sucesso': True, 'evento': evento})
+
+# npcs
+@app.route('/api/campanhas/<int:cid>/npcs', methods=['GET'])
+@token_required
+def listar_npcs_route(current_user_data, cid):
+    return _rota_listar(cid, esconderijo_db.listar_npcs, current_user_data)
+
+@app.route('/api/campanhas/<int:cid>/npcs', methods=['POST'])
+@token_required
+def criar_npc_route(current_user_data, cid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    dados = request.get_json() or {}
+    npc = esconderijo_db.criar_npc(cid, dados)
+    return jsonify({'sucesso': True, 'npc': npc}), 201
+
+@app.route('/api/campanhas/<int:cid>/npcs/<int:nid>', methods=['PUT'])
+@token_required
+def atualizar_npc_route(current_user_data, cid, nid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    dados = request.get_json() or {}
+    npc = esconderijo_db.atualizar_npc(nid, dados)
+    if not npc:
+        return jsonify({'sucesso': False, 'mensagem': 'NPC não encontrado.'}), 404
+    return jsonify({'sucesso': True, 'npc': npc})
+
+@app.route('/api/campanhas/<int:cid>/npcs/<int:nid>', methods=['DELETE'])
+@token_required
+def deletar_npc_route(current_user_data, cid, nid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    if not esconderijo_db.deletar_npc(nid, cid):
+        return jsonify({'sucesso': False, 'mensagem': 'NPC não encontrado.'}), 404
+    return jsonify({'sucesso': True})
+
+@app.route('/api/campanhas/<int:cid>/npcs/<int:nid>/toggle', methods=['PATCH'])
+@token_required
+def toggle_npc_route(current_user_data, cid, nid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    data = request.get_json() or {}
+    visivel = bool(data.get('visivel', 0))
+    npc = esconderijo_db.toggle_npc(nid, visivel)
+    return jsonify({'sucesso': True, 'npc': npc})
+
+# quests
+@app.route('/api/campanhas/<int:cid>/quests', methods=['GET'])
+@token_required
+def listar_quests_route(current_user_data, cid):
+    return _rota_listar(cid, esconderijo_db.listar_quests, current_user_data)
+
+@app.route('/api/campanhas/<int:cid>/quests', methods=['POST'])
+@token_required
+def criar_quest_route(current_user_data, cid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    dados = request.get_json() or {}
+    quest = esconderijo_db.criar_quest(cid, dados)
+    return jsonify({'sucesso': True, 'quest': quest}), 201
+
+@app.route('/api/campanhas/<int:cid>/quests/<int:qid>', methods=['PUT'])
+@token_required
+def atualizar_quest_route(current_user_data, cid, qid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    dados = request.get_json() or {}
+    quest = esconderijo_db.atualizar_quest(qid, dados)
+    if not quest:
+        return jsonify({'sucesso': False, 'mensagem': 'Quest não encontrada.'}), 404
+    return jsonify({'sucesso': True, 'quest': quest})
+
+@app.route('/api/campanhas/<int:cid>/quests/<int:qid>', methods=['DELETE'])
+@token_required
+def deletar_quest_route(current_user_data, cid, qid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    if not esconderijo_db.deletar_quest(qid, cid):
+        return jsonify({'sucesso': False, 'mensagem': 'Quest não encontrada.'}), 404
+    return jsonify({'sucesso': True})
+
+@app.route('/api/campanhas/<int:cid>/quests/<int:qid>/toggle', methods=['PATCH'])
+@token_required
+def toggle_quest_route(current_user_data, cid, qid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    data = request.get_json() or {}
+    visivel = bool(data.get('visivel', 0))
+    quest = esconderijo_db.toggle_quest(qid, visivel)
+    return jsonify({'sucesso': True, 'quest': quest})
+
+# anotacoes
+@app.route('/api/campanhas/<int:cid>/anotacoes', methods=['GET'])
+@token_required
+def listar_anotacoes_route(current_user_data, cid):
+    return _rota_listar(cid, esconderijo_db.listar_anotacoes, current_user_data)
+
+@app.route('/api/campanhas/<int:cid>/anotacoes', methods=['POST'])
+@token_required
+def criar_anotacao_route(current_user_data, cid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    dados = request.get_json() or {}
+    anotacao = esconderijo_db.criar_anotacao(cid, dados)
+    return jsonify({'sucesso': True, 'anotacao': anotacao}), 201
+
+@app.route('/api/campanhas/<int:cid>/anotacoes/<int:aid>', methods=['PUT'])
+@token_required
+def atualizar_anotacao_route(current_user_data, cid, aid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    dados = request.get_json() or {}
+    anotacao = esconderijo_db.atualizar_anotacao(aid, dados)
+    if not anotacao:
+        return jsonify({'sucesso': False, 'mensagem': 'Anotação não encontrada.'}), 404
+    return jsonify({'sucesso': True, 'anotacao': anotacao})
+
+@app.route('/api/campanhas/<int:cid>/anotacoes/<int:aid>', methods=['DELETE'])
+@token_required
+def deletar_anotacao_route(current_user_data, cid, aid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    if not esconderijo_db.deletar_anotacao(aid, cid):
+        return jsonify({'sucesso': False, 'mensagem': 'Anotação não encontrada.'}), 404
+    return jsonify({'sucesso': True})
+
+@app.route('/api/campanhas/<int:cid>/anotacoes/<int:aid>/toggle', methods=['PATCH'])
+@token_required
+def toggle_anotacao_route(current_user_data, cid, aid):
+    user_id = int(current_user_data['sub'])
+    _, err = _check_campanha_owner(cid, user_id)
+    if err: return err
+    data = request.get_json() or {}
+    visivel = bool(data.get('visivel', 0))
+    anotacao = esconderijo_db.toggle_anotacao(aid, visivel)
+    return jsonify({'sucesso': True, 'anotacao': anotacao})
+
+# sala/campanha
+@app.route('/api/salas/<int:sala_id>/campanha', methods=['GET'])
+@token_required
+def buscar_campanha_sala_route(current_user_data, sala_id):
+    campanha = esconderijo_db.buscar_campanha_da_sala(sala_id)
+    if not campanha:
+        return jsonify({'sucesso': False, 'mensagem': 'Nenhuma campanha vinculada à sala.'}), 404
+    return jsonify(campanha)
+
+@app.route('/api/salas/<int:sala_id>/campanha', methods=['POST'])
+@token_required
+def vincular_campanha_sala_route(current_user_data, sala_id):
+    user_id = int(current_user_data['sub'])
+    dados = request.get_json() or {}
+    campanha_id = dados.get('campanha_id')
+    if not campanha_id:
+        return jsonify({'sucesso': False, 'mensagem': 'campanha_id é obrigatório.'}), 400
+    campanha, err = _check_campanha_owner(campanha_id, user_id)
+    if err: return err
+    esconderijo_db.vincular_sala_campanha(sala_id, campanha_id)
+    return jsonify({'sucesso': True})
 
 # --- CRUD de Monstros (POST, PUT, DELETE) ---
 @app.route("/api/monstros", methods=['POST'])
@@ -547,11 +888,13 @@ salas_ativas = {}
 def handle_connect():
     """Chamado quando um cliente estabelece uma conexão WebSocket."""
     print(f"Cliente conectado! SID: {request.sid}")
+    log_conexao("Cliente conectado", sid=request.sid)
 
 @socketio.on('disconnect')
 def handle_disconnect():
     """Chamado quando um cliente se desconecta."""
     print(f"Cliente desconectado! SID: {request.sid}")
+    log_conexao("Cliente desconectado", sid=request.sid)
     
     sala_para_remover_de = None
     jogador_removido_info = None
@@ -1072,11 +1415,23 @@ batalhas_ativas = {}  # { sala_id: { estado_da_batalha } }
 @socketio.on('batalha_iniciar')
 def handle_batalha_iniciar(data):
     """Mestre inicia uma batalha com monstros selecionados."""
+    log_debug('batalha_iniciar', f'data recebido: {data}')
     token   = data.get('token')
-    sala_id = str(data.get('sala_id'))
+    sala_id = str(data.get('sala_id')) if data.get('sala_id') is not None else 'NONE'
     monstros_ids = data.get('monstros_ids', [])  # lista de IDs do bestiário
-    acoes_padrao = int(data.get('acoes_padrao', 1))
+    acoes_padrao = 1
+    try:
+        acoes_padrao = int(data.get('acoes_padrao', 1))
+    except Exception as e:
+        log_erro('batalha_iniciar', sala_id=sala_id, erro_msg=f'acoes_padrao invalid: {e}')
     acoes_individuais = data.get('acoes_individuais', {})  # { ficha_id: n_acoes }
+
+    log_evento_socket('batalha_iniciar', sala_id, payload_resumo=f'monstros={monstros_ids}, acoes_padrao={acoes_padrao}, acoes_individuais={acoes_individuais}')
+
+    if not token:
+        log_erro('batalha_iniciar', sala_id=sala_id, erro_msg='Token ausente no payload')
+        socketio.emit('batalha_erro', {'mensagem': 'Token ausente'}, room=request.sid)
+        return
 
     try:
         user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
@@ -1139,8 +1494,10 @@ def handle_batalha_iniciar(data):
         msg = "--- ⚔️ BATALHA INICIADA! Role iniciativa (1d20)! ---"
         send(msg, to=sala_id)
         salvar_mensagem_chat(sala_id, 'Sistema', msg)
+        log_batalha('iniciativa', sala_id, f'Batalha iniciada por mestre {user_id}, {len(monstros)} monstros, {len(jogadores)} jogadores')
 
     except Exception as e:
+        log_erro('batalha_iniciar', user_id=None, sala_id=sala_id, erro_msg=str(e))
         print(f"Erro batalha_iniciar: {e}")
         socketio.emit('batalha_erro', {'mensagem': str(e)}, room=request.sid)
 
@@ -1686,5 +2043,13 @@ def handle_roll_dano(data):
 
 # --- INICIALIZAÇÃO DO SERVIDOR ---
 if __name__ == '__main__':
-    print("Iniciando o servidor Flask com SocketIO via Eventlet na porta 5003...")
-    socketio.run(app, host='0.0.0.0', port=5003, debug=False, allow_unsafe_werkzeug=True)
+    # HACK: Força o uso do servidor Werkzeug/threading desabilitando a detecção do eventlet.
+    # O eventlet, quando instalado, é pego automaticamente mas está causando conflitos com o CORS.
+    try:
+        from socketio import server
+        server.eventlet = None
+        print("MODO DE COMPATIBILIDADE: Eventlet desabilitado. Iniciando via Threading/Werkzeug...")
+    except (ImportError, AttributeError):
+        print("AVISO: Não foi possível desabilitar o eventlet. Tentando iniciar mesmo assim...")
+
+    socketio.run(app, host='0.0.0.0', port=5003, debug=True, allow_unsafe_werkzeug=True)

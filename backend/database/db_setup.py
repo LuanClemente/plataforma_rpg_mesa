@@ -130,6 +130,110 @@ CREATE TABLE inventario_sala (
 """)
 print("Tabela 'inventario_sala' (Filha de fichas e salas) criada com sucesso!")
 
+# --- Tabelas do Esconderijo do Mestre ---
+cursor.execute("""
+CREATE TABLE campanhas_mestre (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    criador_id INTEGER NOT NULL,
+    nome TEXT NOT NULL,
+    descricao TEXT,
+    historia TEXT,
+    tom TEXT,
+    nivel_min INTEGER,
+    nivel_max INTEGER,
+    sistema TEXT,
+    status TEXT DEFAULT 'ativa',
+    criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (criador_id) REFERENCES usuarios (id)
+);
+""")
+print("Tabela 'campanhas_mestre' criada com sucesso!")
+
+cursor.execute("""
+CREATE TABLE campanha_mapas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    campanha_id INTEGER NOT NULL,
+    nome TEXT,
+    descricao TEXT,
+    imagem_data TEXT,
+    visivel INTEGER DEFAULT 0,
+    ordem INTEGER DEFAULT 0,
+    FOREIGN KEY (campanha_id) REFERENCES campanhas_mestre (id) ON DELETE CASCADE
+);
+""")
+print("Tabela 'campanha_mapas' criada com sucesso!")
+
+cursor.execute("""
+CREATE TABLE campanha_eventos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    campanha_id INTEGER NOT NULL,
+    titulo TEXT,
+    descricao_pub TEXT,
+    descricao_priv TEXT,
+    status TEXT DEFAULT 'futuro',
+    visivel INTEGER DEFAULT 0,
+    ordem INTEGER DEFAULT 0,
+    FOREIGN KEY (campanha_id) REFERENCES campanhas_mestre (id) ON DELETE CASCADE
+);
+""")
+print("Tabela 'campanha_eventos' criada com sucesso!")
+
+cursor.execute("""
+CREATE TABLE campanha_npcs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    campanha_id INTEGER NOT NULL,
+    nome TEXT,
+    papel TEXT,
+    descricao_pub TEXT,
+    descricao_priv TEXT,
+    alinhamento TEXT,
+    local TEXT,
+    visivel INTEGER DEFAULT 0,
+    FOREIGN KEY (campanha_id) REFERENCES campanhas_mestre (id) ON DELETE CASCADE
+);
+""")
+print("Tabela 'campanha_npcs' criada com sucesso!")
+
+cursor.execute("""
+CREATE TABLE campanha_quests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    campanha_id INTEGER NOT NULL,
+    titulo TEXT,
+    objetivo_pub TEXT,
+    detalhes_priv TEXT,
+    recompensa_pub TEXT,
+    recompensa_priv TEXT,
+    local_priv TEXT,
+    status TEXT DEFAULT 'ativa',
+    visivel INTEGER DEFAULT 0,
+    FOREIGN KEY (campanha_id) REFERENCES campanhas_mestre (id) ON DELETE CASCADE
+);
+""")
+print("Tabela 'campanha_quests' criada com sucesso!")
+
+cursor.execute("""
+CREATE TABLE campanha_anotacoes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    campanha_id INTEGER NOT NULL,
+    titulo TEXT,
+    conteudo TEXT,
+    visivel INTEGER DEFAULT 0,
+    FOREIGN KEY (campanha_id) REFERENCES campanhas_mestre (id) ON DELETE CASCADE
+);
+""")
+print("Tabela 'campanha_anotacoes' criada com sucesso!")
+
+cursor.execute("""
+CREATE TABLE sala_campanha (
+    sala_id INTEGER PRIMARY KEY,
+    campanha_id INTEGER NOT NULL,
+    FOREIGN KEY (sala_id) REFERENCES salas (id) ON DELETE CASCADE,
+    FOREIGN KEY (campanha_id) REFERENCES campanhas_mestre (id) ON DELETE CASCADE
+);
+""")
+print("Tabela 'sala_campanha' criada com sucesso!")
+
 # Salva permanentemente todas as alterações no arquivo do banco de dados.
 conexao.commit()
 # Encerra a conexão.

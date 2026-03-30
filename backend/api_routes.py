@@ -23,6 +23,10 @@ api_bp = Blueprint('api', __name__, url_prefix='/api')
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        # Permitir requisições OPTIONS (preflight CORS) sem autenticação
+        if request.method == 'OPTIONS':
+            return '', 200
+        
         token = request.headers.get('x-access-token')
         if not token:
             return jsonify({'mensagem': 'Token ausente.'}), 401
@@ -70,7 +74,7 @@ def login():
 
 
 # ─── CANTIGAS ─────────────────────────────────────────────────────────────────
-@api_bp.route('/cantigas/dados', methods=['GET'])
+@api_bp.route('/cantigas/dados', methods=['GET', 'OPTIONS'])
 @token_required
 def get_cantigas_dados(token_data):
     dados = buscar_dados_cantigas(token_data['sub'])
@@ -79,7 +83,7 @@ def get_cantigas_dados(token_data):
     return jsonify(dados)
 
 
-@api_bp.route('/cantigas/historico', methods=['GET'])
+@api_bp.route('/cantigas/historico', methods=['GET', 'OPTIONS'])
 @token_required
 def get_cantigas_historico(token_data):
     return jsonify(buscar_historico_salas(token_data['sub']))

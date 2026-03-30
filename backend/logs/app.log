@@ -1,0 +1,138 @@
+2026-03-29 21:49:35 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 21:49:35 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 21:49:35.124149
+2026-03-29 21:49:35 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 21:49:35 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 21:49:35 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:711vJl4Mn2r5cpN3AAAB]
+2026-03-29 21:49:36 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:05VZs5Z6KDu1_wEMAAAD]
+2026-03-29 21:50:22 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 21:50:22 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 21:50:22.327999
+2026-03-29 21:50:22 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 21:50:22 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 21:50:22 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:IGiUViHUKQ3ukkjTAAAB]
+2026-03-29 21:50:22 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:ukzdFt4YG0FbQ7arAAAD]
+2026-03-29 21:51:23 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 21:51:23 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 21:51:23.802823
+2026-03-29 21:51:23 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 21:51:23 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 21:51:30 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:ukzdFt4YG0FbQ7arAAAD]
+2026-03-29 21:51:31 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:8fQX-25EAYuImSKrAAAF]
+2026-03-29 21:51:37 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:8fQX-25EAYuImSKrAAAF]
+2026-03-29 21:51:37 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:yl1A3dmV9DqGGSfjAAAH]
+2026-03-29 21:51:43 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:yl1A3dmV9DqGGSfjAAAH]
+2026-03-29 21:51:45 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:N0JqMXQv8FDVPzV6AAAJ]
+2026-03-29 21:54:35 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:N0JqMXQv8FDVPzV6AAAJ]
+2026-03-29 21:54:45 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:j02zJ8T2AX7Cz2eQAAAL]
+2026-03-29 21:54:49 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:j02zJ8T2AX7Cz2eQAAAL]
+2026-03-29 21:57:22 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:IGiUViHUKQ3ukkjTAAAB]
+2026-03-29 21:57:22 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:PIHS59Zzr1Ytcm-jAAAN]
+2026-03-29 21:57:22 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:P37pw5QrJPHP-HUyAAAP]
+2026-03-29 21:58:05 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:PIHS59Zzr1Ytcm-jAAAN]
+2026-03-29 21:58:05 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:sbRQYOq8opLpJN7KAAAR]
+2026-03-29 21:58:06 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:P37pw5QrJPHP-HUyAAAP]
+2026-03-29 21:58:06 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:PRl7El9kKeLFcINQAAAT]
+2026-03-29 21:59:12 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 21:59:12 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 21:59:12.138228
+2026-03-29 21:59:12 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 21:59:12 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 21:59:19 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:PRl7El9kKeLFcINQAAAT]
+2026-03-29 22:01:37 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:sbRQYOq8opLpJN7KAAAR]
+2026-03-29 22:01:37 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:8rrm5WUDqF7UzSzfAAAV]
+2026-03-29 22:01:38 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:lKt-JP3lZ8X22RtKAAAX]
+2026-03-29 22:02:00 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:8rrm5WUDqF7UzSzfAAAV]
+2026-03-29 22:02:00 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:MkMHDhkUqmyoolwdAAAZ]
+2026-03-29 22:02:01 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:lKt-JP3lZ8X22RtKAAAX]
+2026-03-29 22:02:01 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:yIbdLEtcLGH3FslKAAAb]
+2026-03-29 22:02:27 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 22:02:27 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 22:02:27.676516
+2026-03-29 22:02:27 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 22:02:27 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 22:02:38 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:yIbdLEtcLGH3FslKAAAb]
+2026-03-29 22:05:36 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 22:05:36 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 22:05:36.029476
+2026-03-29 22:05:36 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 22:05:36 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 22:05:43 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:DQlmMPO_GrZAjDFPAAAd]
+2026-03-29 22:05:49 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:DQlmMPO_GrZAjDFPAAAd]
+2026-03-29 22:05:52 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:MkMHDhkUqmyoolwdAAAZ]
+2026-03-29 22:05:52 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:d2UVZSAO7lvCYCe5AAAf]
+2026-03-29 22:07:28 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:42C10Ljt6jflinTMAAAh]
+2026-03-29 22:09:01 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 22:09:01 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 22:09:01.551798
+2026-03-29 22:09:01 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 22:09:01 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 22:09:05 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:42C10Ljt6jflinTMAAAh]
+2026-03-29 22:09:05 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:d2UVZSAO7lvCYCe5AAAf]
+2026-03-29 22:09:07 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:aDUDGVXLXw3XH8v0AAAj]
+2026-03-29 22:09:07 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:ruO1vdMhP224nqI2AAAl]
+2026-03-29 22:09:07 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:aDUDGVXLXw3XH8v0AAAj]
+2026-03-29 22:09:08 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:UiKC_CUIPxLHYyDgAAAn]
+2026-03-29 22:09:43 | INFO     | rpg_mesa | log_evento_socket:78 | [Evento:batalha_iniciar] [Sala:1] [User:None] | monstros=[184]
+2026-03-29 22:09:43 | INFO     | rpg_mesa | log_batalha:82 | [BATALHA] [Sala:1] [Fase:iniciativa] | Batalha iniciada por mestre 1, 1 monstros, 1 jogadores
+2026-03-29 22:10:20 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:UiKC_CUIPxLHYyDgAAAn]
+2026-03-29 22:24:22 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 22:24:22 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 22:24:22.042378
+2026-03-29 22:24:22 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 22:24:22 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 22:24:33 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:ruO1vdMhP224nqI2AAAl]
+2026-03-29 22:24:33 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:x4fR8AimKdXW5E_LAAAp]
+2026-03-29 22:24:33 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:x4fR8AimKdXW5E_LAAAp]
+2026-03-29 22:24:33 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:TaL4JHwcTqgY94-rAAAr]
+2026-03-29 22:24:47 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:b6weyd3xJU786mkHAAAt]
+2026-03-29 22:25:07 | INFO     | rpg_mesa | log_evento_socket:78 | [Evento:batalha_iniciar] [Sala:1] [User:None] | monstros=[341]
+2026-03-29 22:25:07 | INFO     | rpg_mesa | log_batalha:82 | [BATALHA] [Sala:1] [Fase:iniciativa] | Batalha iniciada por mestre 1, 1 monstros, 1 jogadores
+2026-03-29 22:26:33 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:b6weyd3xJU786mkHAAAt]
+2026-03-29 22:27:39 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:TaL4JHwcTqgY94-rAAAr]
+2026-03-29 22:27:39 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:9ggsSIxFdnr870CnAAAv]
+2026-03-29 22:27:40 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:9ggsSIxFdnr870CnAAAv]
+2026-03-29 22:27:40 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:DBsLkhqCQZD6MOatAAAx]
+2026-03-29 22:30:11 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 22:30:11 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 22:30:11.676438
+2026-03-29 22:30:11 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 22:30:11 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 22:30:58 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:DBsLkhqCQZD6MOatAAAx]
+2026-03-29 22:30:58 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:NPuUXGkxc1sBRFVJAAAz]
+2026-03-29 22:36:17 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 22:36:17 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 22:36:17.079897
+2026-03-29 22:36:17 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 22:36:17 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 22:37:18 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 22:37:18 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 22:37:18.324980
+2026-03-29 22:37:18 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 22:37:18 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 22:38:11 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 22:38:11 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 22:38:11.593236
+2026-03-29 22:38:11 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 22:38:11 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 22:38:32 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:NPuUXGkxc1sBRFVJAAAz]
+2026-03-29 22:38:33 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:7GfX-8vjEJx7GUpMAAA1]
+2026-03-29 22:46:21 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 22:46:21 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 22:46:21.821559
+2026-03-29 22:46:21 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 22:46:21 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 22:46:50 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:7GfX-8vjEJx7GUpMAAA1]
+2026-03-29 22:46:50 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:MQiIvAqdyLGzSE-KAAA3]
+2026-03-29 22:51:24 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 22:51:24 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 22:51:24.471036
+2026-03-29 22:51:24 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 22:51:24 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 22:51:33 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:MQiIvAqdyLGzSE-KAAA3]
+2026-03-29 22:51:35 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:GVV_iQ5x17whyEp3AAA5]
+2026-03-29 22:58:51 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 22:58:51 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 22:58:51.215164
+2026-03-29 22:58:51 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 22:58:51 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 22:59:57 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:GVV_iQ5x17whyEp3AAA5]
+2026-03-29 22:59:57 | INFO     | rpg_mesa | log_conexao:71 | Cliente conectado [User:None] [Sala:None] [SID:XSlQogPtu5YiVy2WAAA7]
+2026-03-29 23:02:59 | INFO     | rpg_mesa | log_conexao:71 | Cliente desconectado [User:None] [Sala:None] [SID:XSlQogPtu5YiVy2WAAA7]
+2026-03-29 23:03:18 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 23:03:18 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 23:03:18.966661
+2026-03-29 23:03:18 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 23:03:18 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 23:09:09 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 23:09:09 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 23:09:09.282390
+2026-03-29 23:09:09 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 23:09:09 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================
+2026-03-29 23:09:10 | INFO     | rpg_mesa | setup_logging:55 | ================================================================================
+2026-03-29 23:09:10 | INFO     | rpg_mesa | setup_logging:56 | Logger inicializado em 2026-03-29 23:09:10.050886
+2026-03-29 23:09:10 | INFO     | rpg_mesa | setup_logging:57 | Arquivo de logs: C:\Users\luanc\Downloads\plataforma_rpg_mesa\backend\logs\app.log
+2026-03-29 23:09:10 | INFO     | rpg_mesa | setup_logging:58 | ================================================================================

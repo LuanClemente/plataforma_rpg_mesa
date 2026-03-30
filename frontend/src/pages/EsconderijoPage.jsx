@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { backgrounds } from '../assets/backgrounds';
 
-const API = 'http://localhost:5003';
+const API = 'http://127.0.0.1:5003';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const TONS = ['Épico','Sombrio','Humorístico','Misterioso','Horror','Aventura','Político'];

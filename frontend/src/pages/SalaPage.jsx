@@ -302,7 +302,10 @@ function SalaPage() {
       {isMestre && (
         <div className="sala-mestre-bar">
           <MestrePanel socket={socketRef.current} salaId={salaId} jogadores={jogadores} />
-          <button onClick={() => setBatalhaAberta(true)} style={{
+            <button onClick={() => {
+              console.log('[SalaPage] BATALHA click', {isMestre, salaId, jogadores});
+              setBatalhaAberta(true);
+            }} style={{
             background:'linear-gradient(135deg,#8b1a1a,#c04040)',
             border:'2px solid #e04040', color:'#fff',
             fontFamily:"'MedievalSharp',cursive",
