@@ -1107,3 +1107,12 @@ body.login-page-body #root {
   color: #999;
   margin-top: 1rem;
 }
+/* ===== BATALHA ===== */
+@keyframes battlePulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(200,40,40,0.5); }
+  50%       { box-shadow: 0 0 28px rgba(200,40,40,0.9), 0 0 8px #ff4040; }
+}
+@keyframes fadeInScale {
+  0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.6); }
+  100% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+}

@@ -12,7 +12,6 @@ import sys
 import os
 import bcrypt # Import bcrypt que faltava (usado em verificar_login, etc.)
 import sqlite3 # Import sqlite3 para get_db_connection
-
 # --- IMPORTS DE MÓDulos INTERNOS ---
 # (Verificando se todas as funções usadas estão importadas)
 from ..database.db_manager import (
@@ -689,6 +688,14 @@ def handle_send_message(data):
     message_text = data.get('message')
     
     # Valida dados e se o remetente está na sala rastreada
+    # Bloquear jogador morto
+    if sala_id and str(sala_id) in batalhas_ativas:
+        b = batalhas_ativas[str(sala_id)]
+        sid = request.sid
+        for j in b['jogadores']:
+            if j.get('sid') == sid and j['status'] == 'morto':
+                socketio.emit('acao_bloqueada', {'motivo': 'Você está morto e não pode agir.'}, room=sid)
+                return
     if not sala_id or not message_text or sala_id not in salas_ativas or request.sid not in salas_ativas[sala_id]:
         print(f"Erro send_message: Dados inválidos ou remetente não encontrado. SID: {request.sid}, Sala: {sala_id}")
         # Poderia enviar um erro de volta para o remetente, mas vamos evitar flood
@@ -1055,7 +1062,629 @@ def handle_banir(data):
         print(f"Erro em handle_banir: {e}")
 
 
+
+
+# ============================================================
+# SISTEMA DE BATALHA
+# ============================================================
+batalhas_ativas = {}  # { sala_id: { estado_da_batalha } }
+
+@socketio.on('batalha_iniciar')
+def handle_batalha_iniciar(data):
+    """Mestre inicia uma batalha com monstros selecionados."""
+    token   = data.get('token')
+    sala_id = str(data.get('sala_id'))
+    monstros_ids = data.get('monstros_ids', [])  # lista de IDs do bestiário
+    acoes_padrao = int(data.get('acoes_padrao', 1))
+    acoes_individuais = data.get('acoes_individuais', {})  # { ficha_id: n_acoes }
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id   = int(user_data['sub'])
+        if user_id != buscar_mestre_da_sala(sala_id):
+            return
+
+        # Montar lista de monstros com HP atual
+        monstros = []
+        for mid in monstros_ids:
+            m = buscar_monstro_por_id(mid)
+            if m:
+                monstros.append({
+                    'id': f"m_{mid}_{len(monstros)}",
+                    'db_id': mid,
+                    'nome': m['nome'],
+                    'tipo': m.get('tipo',''),
+                    'hp_max': m.get('vida_maxima', 10),
+                    'hp_atual': m.get('vida_maxima', 10),
+                    'ca': m.get('ca', m.get('defesa', 10)),
+                    'status': 'vivo',  # vivo | derrotado | fugiu
+                    'iniciativa': 0,
+                })
+
+        # Montar lista de jogadores
+        jogadores = []
+        if sala_id in salas_ativas:
+            for sid, info in salas_ativas[sala_id].items():
+                if info['role'] == 'player' and info.get('ficha_id'):
+                    fid = str(info['ficha_id'])
+                    jogadores.append({
+                        'sid': sid,
+                        'ficha_id': fid,
+                        'nome': info['nome_personagem'],
+                        'status': 'vivo',  # vivo | caido | morto
+                        'hp_atual': 10,
+                        'acoes_restantes': acoes_individuais.get(fid, acoes_padrao),
+                        'acoes_max': acoes_individuais.get(fid, acoes_padrao),
+                        'iniciativa': 0,
+                    })
+            # Mestre NÃO participa como combatente
+
+        batalhas_ativas[sala_id] = {
+            'fase': 'iniciativa',  # iniciativa | combate | encerrada
+            'sub_fase': None,      # None | aguardando_d20_acerto | aguardando_dado_dano | aguardando_roll_dano
+            'monstros': monstros,
+            'jogadores': jogadores,
+            'turno_ordem': [],
+            'turno_atual': 0,
+            'log': [],
+            'acoes_padrao': acoes_padrao,
+        }
+
+        # Notificar toda a sala
+        socketio.emit('batalha_iniciada', {
+            'batalha': _batalha_publica(sala_id),
+            'batalha_mestre': batalhas_ativas[sala_id],
+        }, to=sala_id)
+
+        msg = "--- ⚔️ BATALHA INICIADA! Role iniciativa (1d20)! ---"
+        send(msg, to=sala_id)
+        salvar_mensagem_chat(sala_id, 'Sistema', msg)
+
+    except Exception as e:
+        print(f"Erro batalha_iniciar: {e}")
+        socketio.emit('batalha_erro', {'mensagem': str(e)}, room=request.sid)
+
+
+def _batalha_publica(sala_id):
+    """Retorna estado da batalha SEM HP dos monstros (para players)."""
+    b = batalhas_ativas.get(sala_id)
+    if not b: return None
+    monstros_pub = []
+    for m in b['monstros']:
+        monstros_pub.append({
+            'id': m['id'], 'nome': m['nome'], 'tipo': m['tipo'],
+            'status': m['status'], 'ca': m['ca'],
+            # HP escondido: só mostra se derrotado/fugiu
+            'hp_oculto': m['status'] == 'vivo',
+        })
+    return {
+        'fase': b['fase'],
+        'sub_fase': b.get('sub_fase'),
+        'dado_dano_atual': b.get('dado_dano_atual'),
+        'alvo_dano_atual': b.get('alvo_dano_atual'),
+        'd20_acerto_atual': b.get('d20_acerto_atual'),
+        'monstros': monstros_pub,
+        'jogadores': b['jogadores'],
+        'turno_ordem': b['turno_ordem'],
+        'turno_atual': b['turno_atual'],
+        'log': b['log'],
+    }
+
+
+@socketio.on('batalha_set_iniciativa')
+def handle_set_iniciativa(data):
+    """Mestre registra iniciativa de um participante."""
+    token   = data.get('token')
+    sala_id = str(data.get('sala_id'))
+    pid     = data.get('pid')   # ficha_id ou id do monstro
+    valor   = int(data.get('valor', 0))
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id   = int(user_data['sub'])
+        if user_id != buscar_mestre_da_sala(sala_id) or sala_id not in batalhas_ativas:
+            return
+
+        b = batalhas_ativas[sala_id]
+        for j in b['jogadores']:
+            if j['ficha_id'] == str(pid):
+                j['iniciativa'] = valor
+        for m in b['monstros']:
+            if m['id'] == pid:
+                m['iniciativa'] = valor
+
+        socketio.emit('batalha_atualizada', {
+            'batalha': _batalha_publica(sala_id),
+            'batalha_mestre': b,
+        }, to=sala_id)
+
+    except Exception as e:
+        print(f"Erro set_iniciativa: {e}")
+
+
+@socketio.on('batalha_comecar_combate')
+def handle_comecar_combate(data):
+    """Mestre confirma iniciativas e começa o combate."""
+    token   = data.get('token')
+    sala_id = str(data.get('sala_id'))
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id   = int(user_data['sub'])
+        if user_id != buscar_mestre_da_sala(sala_id) or sala_id not in batalhas_ativas:
+            return
+
+        b = batalhas_ativas[sala_id]
+
+        # Montar ordem por iniciativa (maior primeiro)
+        participantes = []
+        for j in b['jogadores']:
+            participantes.append({'id': j['ficha_id'], 'nome': j['nome'], 'tipo': 'jogador', 'iniciativa': j['iniciativa']})
+        for m in b['monstros']:
+            if m['status'] == 'vivo':
+                participantes.append({'id': m['id'], 'nome': m['nome'], 'tipo': 'monstro', 'iniciativa': m['iniciativa']})
+
+        participantes.sort(key=lambda x: x['iniciativa'], reverse=True)
+        b['turno_ordem'] = participantes
+        b['turno_atual'] = 0
+        b['fase'] = 'combate'
+
+        # Resetar ações
+        for j in b['jogadores']:
+            j['acoes_restantes'] = j['acoes_max']
+
+        log_entry = f"⚔️ Combate iniciado! Ordem: {' → '.join(p['nome'] for p in participantes)}"
+        b['log'].append(log_entry)
+
+        socketio.emit('batalha_atualizada', {
+            'batalha': _batalha_publica(sala_id),
+            'batalha_mestre': b,
+        }, to=sala_id)
+
+        msg = f"--- {log_entry} ---"
+        send(msg, to=sala_id)
+        salvar_mensagem_chat(sala_id, 'Sistema', msg)
+
+    except Exception as e:
+        print(f"Erro comecar_combate: {e}")
+
+
+@socketio.on('batalha_atacar')
+def handle_atacar(data):
+    """Registra um ataque (player ou monstro atacando alvo)."""
+    token    = data.get('token')
+    sala_id  = str(data.get('sala_id'))
+    atacante_id = data.get('atacante_id')
+    alvo_id  = data.get('alvo_id')
+    dano     = int(data.get('dano', 0))
+    rolagem  = data.get('rolagem', '')  # ex: "1d6+2 = 8"
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id   = int(user_data['sub'])
+        if sala_id not in batalhas_ativas:
+            return
+
+        b = batalhas_ativas[sala_id]
+        is_mestre = (user_id == buscar_mestre_da_sala(sala_id))
+
+        # Encontrar nomes
+        nome_atacante = atacante_id
+        nome_alvo = alvo_id
+
+        for j in b['jogadores']:
+            if j['ficha_id'] == str(atacante_id): nome_atacante = j['nome']
+            if j['ficha_id'] == str(alvo_id):
+                nome_alvo = j['nome']
+                j['hp_atual'] = max(0, j['hp_atual'] - dano)
+                if j['hp_atual'] == 0 and j['status'] == 'vivo':
+                    j['status'] = 'caido'
+                    b['log'].append(f"💀 {j['nome']} caiu em batalha!")
+
+        for m in b['monstros']:
+            if m['id'] == atacante_id: nome_atacante = m['nome']
+            if m['id'] == alvo_id and is_mestre:
+                nome_alvo = m['nome']
+                m['hp_atual'] = max(0, m['hp_atual'] - dano)
+                if m['hp_atual'] == 0 and m['status'] == 'vivo':
+                    m['status'] = 'derrotado'
+                    b['log'].append(f"💥 {m['nome']} foi derrotado!")
+                    msg = f"--- 💥 {m['nome']} foi derrotado! ---"
+                    send(msg, to=sala_id)
+                    salvar_mensagem_chat(sala_id, 'Sistema', msg)
+
+        log_entry = f"⚔️ {nome_atacante} atacou {nome_alvo}: {rolagem} ({dano} dano)"
+        b['log'].append(log_entry)
+
+        socketio.emit('batalha_atualizada', {
+            'batalha': _batalha_publica(sala_id),
+            'batalha_mestre': b,
+            'efeito': {'tipo': 'ataque', 'atacante': atacante_id, 'alvo': alvo_id, 'dano': dano},
+        }, to=sala_id)
+
+    except Exception as e:
+        print(f"Erro batalha_atacar: {e}")
+
+
+@socketio.on('batalha_proximo_turno')
+def handle_proximo_turno(data):
+    """Avança para o próximo turno."""
+    token   = data.get('token')
+    sala_id = str(data.get('sala_id'))
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id   = int(user_data['sub'])
+        if user_id != buscar_mestre_da_sala(sala_id) or sala_id not in batalhas_ativas:
+            return
+
+        b = batalhas_ativas[sala_id]
+        ativos = [p for p in b['turno_ordem']
+                  if not _esta_fora(p['id'], b)]
+
+        if not ativos:
+            return
+
+        b['turno_atual'] = (b['turno_atual'] + 1) % len(ativos)
+
+        # Resetar ações do participante atual
+        atual = ativos[b['turno_atual']]
+        for j in b['jogadores']:
+            if j['ficha_id'] == atual['id']:
+                j['acoes_restantes'] = j['acoes_max']
+
+        b['sub_fase'] = None
+        b['d20_acerto_atual'] = None
+        b['dado_dano_atual'] = None
+        b['alvo_dano_atual'] = None
+        b['log'].append(f"🔄 Turno de {atual['nome']}")
+
+        socketio.emit('batalha_atualizada', {
+            'batalha': _batalha_publica(sala_id),
+            'batalha_mestre': b,
+        }, to=sala_id)
+
+    except Exception as e:
+        print(f"Erro proximo_turno: {e}")
+
+
+def _esta_fora(pid, b):
+    for j in b['jogadores']:
+        if j['ficha_id'] == str(pid) and j['status'] in ('morto',):
+            return True
+    for m in b['monstros']:
+        if m['id'] == pid and m['status'] != 'vivo':
+            return True
+    return False
+
+
+@socketio.on('batalha_curar')
+def handle_curar(data):
+    """Mestre cura um jogador."""
+    token   = data.get('token')
+    sala_id = str(data.get('sala_id'))
+    alvo_id = str(data.get('alvo_id'))
+    cura    = int(data.get('cura', 1))
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id   = int(user_data['sub'])
+        if user_id != buscar_mestre_da_sala(sala_id) or sala_id not in batalhas_ativas:
+            return
+
+        b = batalhas_ativas[sala_id]
+        for j in b['jogadores']:
+            if j['ficha_id'] == alvo_id:
+                if j['status'] == 'caido':
+                    j['status'] = 'vivo'
+                    j['hp_atual'] = max(1, cura)
+                    b['log'].append(f"💚 {j['nome']} foi curado e levantou com {j['hp_atual']} HP!")
+                else:
+                    j['hp_atual'] += cura
+                    b['log'].append(f"💚 {j['nome']} recebeu {cura} de cura (HP: {j['hp_atual']})")
+
+        socketio.emit('batalha_atualizada', {
+            'batalha': _batalha_publica(sala_id),
+            'batalha_mestre': b,
+        }, to=sala_id)
+
+    except Exception as e:
+        print(f"Erro batalha_curar: {e}")
+
+
+@socketio.on('batalha_status_jogador')
+def handle_status_jogador(data):
+    """Mestre muda status de um jogador: caido | morto | vivo."""
+    token   = data.get('token')
+    sala_id = str(data.get('sala_id'))
+    alvo_id = str(data.get('alvo_id'))
+    novo_status = data.get('status')  # caido | morto | vivo
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id   = int(user_data['sub'])
+        if user_id != buscar_mestre_da_sala(sala_id) or sala_id not in batalhas_ativas:
+            return
+
+        b = batalhas_ativas[sala_id]
+        for j in b['jogadores']:
+            if j['ficha_id'] == alvo_id:
+                j['status'] = novo_status
+                if novo_status == 'morto':
+                    b['log'].append(f"☠️ {j['nome']} morreu!")
+                    # Notificar jogador específico que está morto
+                    if j['sid']:
+                        socketio.emit('jogador_morto', {}, room=j['sid'])
+                elif novo_status == 'vivo':
+                    j['hp_atual'] = max(1, j['hp_atual'])
+                    b['log'].append(f"✨ {j['nome']} foi ressuscitado!")
+                    if j['sid']:
+                        socketio.emit('jogador_ressuscitado', {}, room=j['sid'])
+
+        socketio.emit('batalha_atualizada', {
+            'batalha': _batalha_publica(sala_id),
+            'batalha_mestre': b,
+        }, to=sala_id)
+
+    except Exception as e:
+        print(f"Erro status_jogador: {e}")
+
+
+@socketio.on('batalha_status_monstro')
+def handle_status_monstro(data):
+    """Mestre declara monstro derrotado ou fugido."""
+    token    = data.get('token')
+    sala_id  = str(data.get('sala_id'))
+    monstro_id = data.get('monstro_id')
+    novo_status = data.get('status')  # derrotado | fugiu
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id   = int(user_data['sub'])
+        if user_id != buscar_mestre_da_sala(sala_id) or sala_id not in batalhas_ativas:
+            return
+
+        b = batalhas_ativas[sala_id]
+        for m in b['monstros']:
+            if m['id'] == monstro_id:
+                m['status'] = novo_status
+                emoji = '💥' if novo_status == 'derrotado' else '💨'
+                texto = 'foi derrotado' if novo_status == 'derrotado' else 'fugiu!'
+                b['log'].append(f"{emoji} {m['nome']} {texto}!")
+                msg = f"--- {emoji} {m['nome']} {texto}! ---"
+                send(msg, to=sala_id)
+                salvar_mensagem_chat(sala_id, 'Sistema', msg)
+
+        socketio.emit('batalha_atualizada', {
+            'batalha': _batalha_publica(sala_id),
+            'batalha_mestre': b,
+        }, to=sala_id)
+
+    except Exception as e:
+        print(f"Erro status_monstro: {e}")
+
+
+@socketio.on('batalha_encerrar')
+def handle_encerrar_batalha(data):
+    """Mestre encerra a batalha."""
+    token   = data.get('token')
+    sala_id = str(data.get('sala_id'))
+    motivo  = data.get('motivo', 'encerrada')  # vitoria | derrota | encerrada
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id   = int(user_data['sub'])
+        if user_id != buscar_mestre_da_sala(sala_id):
+            return
+
+        if sala_id in batalhas_ativas:
+            del batalhas_ativas[sala_id]
+
+        emojis = {'vitoria': '🏆', 'derrota': '💀', 'encerrada': '🏳️'}
+        textos = {'vitoria': 'VITÓRIA!', 'derrota': 'DERROTA...', 'encerrada': 'Batalha encerrada.'}
+        emoji = emojis.get(motivo, '🏳️')
+        texto = textos.get(motivo, 'Batalha encerrada.')
+
+        socketio.emit('batalha_encerrada', {
+            'motivo': motivo, 'texto': texto, 'emoji': emoji,
+        }, to=sala_id)
+
+        msg = f"--- {emoji} {texto} ---"
+        send(msg, to=sala_id)
+        salvar_mensagem_chat(sala_id, 'Sistema', msg)
+
+    except Exception as e:
+        print(f"Erro encerrar_batalha: {e}")
+
+
+
+
+@socketio.on('batalha_player_iniciativa')
+def handle_player_iniciativa(data):
+    """Player envia sua própria rolagem de iniciativa."""
+    token   = data.get('token')
+    sala_id = str(data.get('sala_id'))
+    valor   = int(data.get('valor', 0))
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id   = int(user_data['sub'])
+        if sala_id not in batalhas_ativas:
+            return
+
+        b = batalhas_ativas[sala_id]
+        if b['fase'] != 'iniciativa':
+            return
+
+        # Encontrar o jogador pelo user_id (via sid)
+        sid = request.sid
+        for j in b['jogadores']:
+            if j['sid'] == sid:
+                j['iniciativa'] = valor
+                b['log'].append(f"🎲 {j['nome']} rolou {valor} de iniciativa!")
+                break
+
+        socketio.emit('batalha_atualizada', {
+            'batalha': _batalha_publica(sala_id),
+            'batalha_mestre': b,
+        }, to=sala_id)
+
+    except Exception as e:
+        print(f"Erro player_iniciativa: {e}")
+
+
+@socketio.on('batalha_d20_acerto')
+def handle_d20_acerto(data):
+    """Player rola D20 para tentar acertar no seu turno."""
+    token    = data.get('token')
+    sala_id  = str(data.get('sala_id'))
+    valor    = int(data.get('valor', 0))
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id   = int(user_data['sub'])
+        if sala_id not in batalhas_ativas:
+            return
+
+        b = batalhas_ativas[sala_id]
+        if b['fase'] != 'combate' or b.get('sub_fase') != 'aguardando_d20_acerto':
+            socketio.emit('batalha_erro', {'mensagem': 'Não é hora de rolar acerto.'}, room=request.sid)
+            return
+
+        # Verificar se é o turno deste player
+        ativos = [p for p in b['turno_ordem'] if not _esta_fora(p['id'], b)]
+        if not ativos:
+            return
+        turno_atual = ativos[b['turno_atual'] % len(ativos)]
+
+        sid = request.sid
+        player_no_turno = next((j for j in b['jogadores'] if j['sid'] == sid and j['ficha_id'] == turno_atual['id']), None)
+        if not player_no_turno:
+            socketio.emit('batalha_erro', {'mensagem': 'Não é seu turno.'}, room=request.sid)
+            return
+
+        b['d20_acerto_atual'] = valor
+        b['sub_fase'] = 'aguardando_dado_dano'
+        b['log'].append(f"🎲 {player_no_turno['nome']} rolou {valor} para acerto!")
+
+        # Notificar mestre para escolher o dado de dano
+        socketio.emit('batalha_atualizada', {
+            'batalha': _batalha_publica(sala_id),
+            'batalha_mestre': b,
+        }, to=sala_id)
+
+    except Exception as e:
+        print(f"Erro d20_acerto: {e}")
+
+
+@socketio.on('batalha_mestre_escolhe_dado')
+def handle_mestre_escolhe_dado(data):
+    """Mestre escolhe qual dado o player vai rolar para dano."""
+    token    = data.get('token')
+    sala_id  = str(data.get('sala_id'))
+    dado     = data.get('dado', '1d6')   # ex: '1d6', '2d8', '1d6+1d10'
+    alvo_id  = data.get('alvo_id')
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id   = int(user_data['sub'])
+        if user_id != buscar_mestre_da_sala(sala_id) or sala_id not in batalhas_ativas:
+            return
+
+        b = batalhas_ativas[sala_id]
+        if b.get('sub_fase') != 'aguardando_dado_dano':
+            return
+
+        b['dado_dano_atual'] = dado
+        b['alvo_dano_atual'] = alvo_id
+        b['sub_fase'] = 'aguardando_roll_dano'
+        b['log'].append(f"🎲 Mestre escolheu {dado} como dado de dano!")
+
+        # Notificar o alvo escolhido também
+        socketio.emit('batalha_atualizada', {
+            'batalha': _batalha_publica(sala_id),
+            'batalha_mestre': b,
+        }, to=sala_id)
+
+    except Exception as e:
+        print(f"Erro mestre_escolhe_dado: {e}")
+
+
+@socketio.on('batalha_roll_dano')
+def handle_roll_dano(data):
+    """Player rola o dado de dano escolhido pelo mestre."""
+    token    = data.get('token')
+    sala_id  = str(data.get('sala_id'))
+    valor    = int(data.get('valor', 0))
+    rolagem_str = data.get('rolagem_str', '')
+
+    try:
+        user_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id   = int(user_data['sub'])
+        if sala_id not in batalhas_ativas:
+            return
+
+        b = batalhas_ativas[sala_id]
+        if b.get('sub_fase') != 'aguardando_roll_dano':
+            socketio.emit('batalha_erro', {'mensagem': 'Não é hora de rolar dano.'}, room=request.sid)
+            return
+
+        # Verificar turno
+        ativos = [p for p in b['turno_ordem'] if not _esta_fora(p['id'], b)]
+        if not ativos: return
+        turno_atual = ativos[b['turno_atual'] % len(ativos)]
+
+        sid = request.sid
+        player_no_turno = next((j for j in b['jogadores'] if j['sid'] == sid and j['ficha_id'] == turno_atual['id']), None)
+        if not player_no_turno:
+            socketio.emit('batalha_erro', {'mensagem': 'Não é seu turno.'}, room=request.sid)
+            return
+
+        nome_atacante = player_no_turno['nome']
+        alvo_id = b.get('alvo_dano_atual')
+        dado    = b.get('dado_dano_atual', '?d?')
+        d20     = b.get('d20_acerto_atual', '?')
+
+        # Aplicar dano no alvo
+        nome_alvo = alvo_id
+        for m in b['monstros']:
+            if m['id'] == alvo_id:
+                nome_alvo = m['nome']
+                m['hp_atual'] = max(0, m['hp_atual'] - valor)
+                if m['hp_atual'] == 0 and m['status'] == 'vivo':
+                    m['status'] = 'derrotado'
+                    b['log'].append(f"💥 {m['nome']} foi derrotado!")
+                    msg = f"--- 💥 {m['nome']} foi derrotado! ---"
+                    send(msg, to=sala_id)
+                    salvar_mensagem_chat(sala_id, 'Sistema', msg)
+
+        for j in b['jogadores']:
+            if j['ficha_id'] == str(alvo_id):
+                nome_alvo = j['nome']
+                j['hp_atual'] = max(0, j['hp_atual'] - valor)
+                if j['hp_atual'] == 0 and j['status'] == 'vivo':
+                    j['status'] = 'caido'
+                    b['log'].append(f"💀 {j['nome']} caiu em batalha!")
+
+        b['log'].append(f"⚔️ {nome_atacante} (D20:{d20}) usou {dado} → {rolagem_str} = {valor} dano em {nome_alvo}!")
+
+        # Resetar sub_fase
+        b['sub_fase'] = None
+        b['d20_acerto_atual'] = None
+        b['dado_dano_atual'] = None
+        b['alvo_dano_atual'] = None
+
+        socketio.emit('batalha_atualizada', {
+            'batalha': _batalha_publica(sala_id),
+            'batalha_mestre': b,
+            'efeito': {'tipo': 'ataque', 'atacante': player_no_turno['ficha_id'], 'alvo': alvo_id, 'dano': valor},
+        }, to=sala_id)
+
+    except Exception as e:
+        print(f"Erro roll_dano: {e}")
+
+
 # --- INICIALIZAÇÃO DO SERVIDOR ---
 if __name__ == '__main__':
-    print("Iniciando o servidor Flask com SocketIO via Threading na porta 5003...")
+    print("Iniciando o servidor Flask com SocketIO via Eventlet na porta 5003...")
     socketio.run(app, host='0.0.0.0', port=5003, debug=False, allow_unsafe_werkzeug=True)
