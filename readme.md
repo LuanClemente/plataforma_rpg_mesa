@@ -11,12 +11,14 @@ O projeto nasceu para resolver um "boss" muito comum entre grupos de RPG: a difi
 ---
 
 ## 📸 Preview da Aplicação
-
-> **Nota:** Adicione as imagens da aplicação rodando aqui. Mostre a tela de login, o dashboard de criação de personagem e a visão do mestre!
-> 
-> *Exemplo de como adicionar:*
-> `![Tela Inicial](./docs/tela-inicial.png)`
-
+> ![Tela Login](frontend/src/assets/login_page.jpg)
+> ![Tela Inicial](frontend/src/assets/Home.png)
+> ![Bestiário com mais de 880 monstros](frontend/src/assets/Bestiario.png)
+> ![Criação de fichas](frontend/src/assets/fichas.png)
+> ![Criação de salas](frontend/src/assets/Salas.png)
+> ![Ferraria com centenas de itens](frontend/src/assets/ferraria.png)
+> ![Aba do mestre para criar suas campanhas épicas](frontend/src/assets/mestre.png)
+> ![Sala com tudo para você jogar sua campanha](frontend/src/assets/salagaming.png)
 ---
 
 ## 🚀 Funcionalidades
