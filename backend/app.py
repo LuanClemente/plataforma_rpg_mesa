@@ -12,7 +12,7 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret_de_cria_123!')
 url_front = os.environ.get('FRONTEND_URL', '*')
 
 # Se estiver rodando no Render, usa 'eventlet' (que aguenta o tranco). Local, vai de 'threading'
-async_mode = 'eventlet' if os.environ.get('RENDER') else 'threading'
+async_mode = 'gevent' if os.environ.get('RENDER') else 'threading'
 
 # Inicializa o SocketIO com as configurações de produção
 socketio = SocketIO(app, cors_allowed_origins=url_front, async_mode=async_mode)
