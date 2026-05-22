@@ -148,7 +148,7 @@ function SeletorMonstros({ onConfirmar, onCancelar }) {
   useEffect(() => {
     if (!busca.trim()) { setResultados([]); return; }
     setCarregando(true);
-    fetch(`http://127.0.0.1:5003/api/monstros?nome=${encodeURIComponent(busca)}`)
+    fetch(`http://https://plataforma-rpg-mesa.onrender.com/api/monstros?nome=${encodeURIComponent(busca)}`)
       .then(r => r.json())
       .then(d => { setResultados(d.slice(0,10)); setCarregando(false); })
       .catch(() => setCarregando(false));

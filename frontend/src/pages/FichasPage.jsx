@@ -38,7 +38,7 @@ function FichasPage() {
   // --- Funções de Lógica ---
   const buscarFichas = async () => {
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:5003/api/fichas');
+      const response = await fetchWithAuth('http://https://plataforma-rpg-mesa.onrender.com/api/fichas');
       const data = await response.json();
       if (response.ok) { setFichas(data); } else { setMensagem(data.mensagem || "Erro ao buscar fichas."); }
     } catch (error) { setMensagem("Erro de conexão ao buscar fichas."); }
@@ -102,7 +102,7 @@ function FichasPage() {
   const handleCriarFichaAPI = async (fichaParaEnviar) => {
     setMensagem('Criando ficha...');
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:5003/api/fichas', {
+      const response = await fetchWithAuth('http://https://plataforma-rpg-mesa.onrender.com/api/fichas', {
         method: 'POST',
         body: JSON.stringify(fichaParaEnviar),
       });
@@ -137,7 +137,7 @@ function FichasPage() {
   const handleApagarFicha = async (fichaId) => {
     if (window.confirm("Tem certeza que deseja apagar esta ficha?")) {
       try {
-        const response = await fetchWithAuth(`http://127.0.0.1:5003/api/fichas/${fichaId}`, {
+        const response = await fetchWithAuth(`http://https://plataforma-rpg-mesa.onrender.com/api/fichas/${fichaId}`, {
           method: 'DELETE',
         });
         const data = await response.json();

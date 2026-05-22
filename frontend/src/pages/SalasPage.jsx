@@ -32,8 +32,8 @@ function SalasPage() {
     const fetchData = async () => {
       try {
         const [salasRes, fichasRes] = await Promise.all([
-          fetchWithAuth('http://127.0.0.1:5003/api/salas'),
-          fetchWithAuth('http://127.0.0.1:5003/api/fichas')
+          fetchWithAuth('http://https://plataforma-rpg-mesa.onrender.com/api/salas'),
+          fetchWithAuth('http://https://plataforma-rpg-mesa.onrender.com/api/fichas')
         ]);
         if (salasRes.ok) setSalas(await salasRes.json());
         if (fichasRes.ok) setFichas(await fichasRes.json());
@@ -58,7 +58,7 @@ function SalasPage() {
     event.preventDefault();
     setMensagem('Criando sala...');
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:5003/api/salas', {
+      const response = await fetchWithAuth('http://https://plataforma-rpg-mesa.onrender.com/api/salas', {
         method: 'POST',
         body: JSON.stringify({ nome: novaSalaNome, senha: novaSalaSenha }),
       });
@@ -68,7 +68,7 @@ function SalasPage() {
         setNovaSalaNome('');
         setNovaSalaSenha('');
         // Após criar, busca a lista de salas novamente para atualizar a tela.
-        const salasRes = await fetchWithAuth('http://127.0.0.1:5003/api/salas');
+        const salasRes = await fetchWithAuth('http://https://plataforma-rpg-mesa.onrender.com/api/salas');
         if (salasRes.ok) setSalas(await salasRes.json());
       }
     } catch (error) { setMensagem("Erro de conexão ao criar sala."); }
@@ -98,7 +98,7 @@ function SalasPage() {
   const handlePasswordSubmit = async (senhaDigitada) => {
     if (!selectedSala) return;
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:5003/api/salas/verificar-senha', {
+      const response = await fetchWithAuth('http://https://plataforma-rpg-mesa.onrender.com/api/salas/verificar-senha', {
         method: 'POST',
         body: JSON.stringify({ sala_id: selectedSala.id, senha: senhaDigitada }),
       });
@@ -119,13 +119,13 @@ function SalasPage() {
   const handleExcluirSala = async (salaId) => {
     if (!window.confirm('Tem certeza que deseja excluir esta sala?')) return;
     try {
-      const response = await fetchWithAuth(`http://127.0.0.1:5003/api/salas/${salaId}`, {
+      const response = await fetchWithAuth(`http://https://plataforma-rpg-mesa.onrender.com/api/salas/${salaId}`, {
         method: 'DELETE',
       });
       const data = await response.json();
       setMensagem(data.mensagem);
       if (response.ok) {
-        const salasRes = await fetchWithAuth('http://127.0.0.1:5003/api/salas');
+        const salasRes = await fetchWithAuth('http://https://plataforma-rpg-mesa.onrender.com/api/salas');
         if (salasRes.ok) setSalas(await salasRes.json());
       }
     } catch (error) { setMensagem("Erro de conexão ao excluir sala."); }

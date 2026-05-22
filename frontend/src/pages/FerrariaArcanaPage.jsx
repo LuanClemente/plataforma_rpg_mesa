@@ -213,7 +213,7 @@ function FormCriarItem({ onCriado, fetchWithAuth }) {
     if (!form.nome.trim()) { setMsg('❌ Nome é obrigatório.'); return; }
     setLoading(true);
     try {
-      const r = await fetchWithAuth('http://127.0.0.1:5003/api/itens', {
+      const r = await fetchWithAuth('http://https://plataforma-rpg-mesa.onrender.com/api/itens', {
         method:'POST', body: JSON.stringify({...form, tipo: form.categoria}),
       });
       const data = await r.json();
@@ -335,7 +335,7 @@ function FerrariaArcanaPage() {
   }, []);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:5003/api/itens/categorias')
+    fetch('http://https://plataforma-rpg-mesa.onrender.com/api/itens/categorias')
       .then(r=>r.json()).then(setCategorias).catch(()=>{});
   }, []);
 
@@ -345,7 +345,7 @@ function FerrariaArcanaPage() {
     if (filtroNome)          p.append('nome', filtroNome);
     if (filtroOficial !== '') p.append('oficial', filtroOficial);
     if (filtroCategoria)     p.append('categoria', filtroCategoria);
-    fetch(`http://127.0.0.1:5003/api/itens?${p}`)
+    fetch(`http://https://plataforma-rpg-mesa.onrender.com/api/itens?${p}`)
       .then(r=>r.json())
       .then(d=>{ setItens(d); setLoading(false); })
       .catch(()=>setLoading(false));
@@ -355,7 +355,7 @@ function FerrariaArcanaPage() {
 
   const abrirFicha = async (id) => {
     try {
-      const r = await fetch(`http://127.0.0.1:5003/api/itens/${id}`);
+      const r = await fetch(`http://https://plataforma-rpg-mesa.onrender.com/api/itens/${id}`);
       setFichaAberta(await r.json());
     } catch {}
   };

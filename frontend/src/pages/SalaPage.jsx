@@ -60,7 +60,7 @@ function SalaPage() {
       return;
     }
 
-    const socket = io('http://127.0.0.1:5003', {
+    const socket = io('http://https://plataforma-rpg-mesa.onrender.com', {
       transports: ['websocket', 'polling'],
     });
     socketRef.current = socket;
@@ -118,7 +118,7 @@ function SalaPage() {
     if (!fichaId) return;
     const buscar = async () => {
       try {
-        const res  = await fetchWithAuth(`http://127.0.0.1:5003/api/fichas/${fichaId}`);
+        const res  = await fetchWithAuth(`http://https://plataforma-rpg-mesa.onrender.com/api/fichas/${fichaId}`);
         const data = await res.json();
         if (res.ok) setFichaAtiva(data);
       } catch (e) { console.error('Erro ao buscar ficha:', e); }
@@ -176,7 +176,7 @@ function SalaPage() {
     if (!fichaAtiva) return;
     setFeedback('Salvando...');
     try {
-      const res  = await fetchWithAuth(`http://127.0.0.1:5003/api/fichas/${fichaAtiva.id}`, {
+      const res  = await fetchWithAuth(`http://https://plataforma-rpg-mesa.onrender.com/api/fichas/${fichaAtiva.id}`, {
         method: 'PUT', body: JSON.stringify(fichaAtiva),
       });
       const data = await res.json();

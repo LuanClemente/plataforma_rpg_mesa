@@ -35,7 +35,7 @@ function GerenciarHabilidades() {
       // --- [CORREÇÃO APLICADA AQUI] ---
       // Agora chamamos a rota GET /api/habilidades que criamos no backend.
       // Esta rota é pública, então usamos 'fetch' normal.
-      const response = await fetch('http://127.0.0.1:5003/api/habilidades'); 
+      const response = await fetch('http://https://plataforma-rpg-mesa.onrender.com/api/habilidades'); 
       
       // Verifica se a resposta da rede foi bem-sucedida
       if (!response.ok) {
@@ -108,8 +108,8 @@ function GerenciarHabilidades() {
     
     try {
       const url = habilidadeEmEdicao 
-        ? `http://127.0.0.1:5003/api/habilidades/${habilidadeEmEdicao.id}`
-        : 'http://127.0.0.1:5003/api/habilidades';
+        ? `http://https://plataforma-rpg-mesa.onrender.com/api/habilidades/${habilidadeEmEdicao.id}`
+        : 'http://https://plataforma-rpg-mesa.onrender.com/api/habilidades';
       
       const method = habilidadeEmEdicao ? 'PUT' : 'POST';
       
@@ -137,7 +137,7 @@ function GerenciarHabilidades() {
 
     setIsLoading(true);
     try {
-      const response = await fetchWithAuth(`http://127.0.0.1:5003/api/habilidades/${habilidadeId}`, {
+      const response = await fetchWithAuth(`http://https://plataforma-rpg-mesa.onrender.com/api/habilidades/${habilidadeId}`, {
         method: 'DELETE'
       });
 

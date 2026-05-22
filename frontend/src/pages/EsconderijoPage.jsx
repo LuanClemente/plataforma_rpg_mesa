@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { backgrounds } from '../assets/backgrounds';
 
-const API = 'http://127.0.0.1:5003';
+const API = 'http://https://plataforma-rpg-mesa.onrender.com';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const TONS = ['Épico','Sombrio','Humorístico','Misterioso','Horror','Aventura','Político'];

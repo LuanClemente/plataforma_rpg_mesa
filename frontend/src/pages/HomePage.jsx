@@ -234,7 +234,7 @@ function FormCriarMonstro({ onCriado, fetchWithAuth }) {
     if (!form.nome.trim()) { setMsg('❌ Nome é obrigatório.'); return; }
     setLoading(true);
     try {
-      const r = await fetchWithAuth('http://127.0.0.1:5003/api/monstros', {
+      const r = await fetchWithAuth('http://https://plataforma-rpg-mesa.onrender.com/api/monstros', {
         method:'POST', body: JSON.stringify(form),
       });
       const data = await r.json();
@@ -413,7 +413,7 @@ function HomePage() {
   }, []);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:5003/api/monstros/tipos')
+    fetch('http://https://plataforma-rpg-mesa.onrender.com/api/monstros/tipos')
       .then(r=>r.json()).then(setTipos).catch(()=>{});
   }, []);
 
@@ -423,7 +423,7 @@ function HomePage() {
     if (filtroNome)         p.append('nome', filtroNome);
     if (filtroOficial!=='') p.append('oficial', filtroOficial);
     if (filtroTipo)         p.append('tipo', filtroTipo);
-    fetch(`http://127.0.0.1:5003/api/monstros?${p}`)
+    fetch(`http://https://plataforma-rpg-mesa.onrender.com/api/monstros?${p}`)
       .then(r=>r.json())
       .then(d=>{ setMonstros(d); setLoading(false); })
       .catch(()=>setLoading(false));
@@ -433,7 +433,7 @@ function HomePage() {
 
   const abrirFicha = async (id) => {
     try {
-      const r = await fetch(`http://127.0.0.1:5003/api/monstros/${id}`);
+      const r = await fetch(`http://https://plataforma-rpg-mesa.onrender.com/api/monstros/${id}`);
       setFichaAberta(await r.json());
     } catch {}
   };

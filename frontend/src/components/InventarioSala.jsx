@@ -20,7 +20,7 @@ function InventarioSala({ socket }) {
     if (!fichaId || !salaId) return;
     try {
       // Passamos a ficha_id como um parâmetro de query na URL.
-      const response = await fetchWithAuth(`http://127.0.0.1:5003/api/salas/${salaId}/inventario?ficha_id=${fichaId}`);
+      const response = await fetchWithAuth(`http://https://plataforma-rpg-mesa.onrender.com/api/salas/${salaId}/inventario?ficha_id=${fichaId}`);
       const data = await response.json();
       if (response.ok) {
         setItens(data);
@@ -50,7 +50,7 @@ function InventarioSala({ socket }) {
     if (nomeItem.trim() === '') return;
     
     try {
-      const response = await fetchWithAuth(`http://127.0.0.1:5003/api/salas/${salaId}/inventario`, {
+      const response = await fetchWithAuth(`http://https://plataforma-rpg-mesa.onrender.com/api/salas/${salaId}/inventario`, {
         method: 'POST',
         body: JSON.stringify({
           ficha_id: fichaId,
@@ -74,7 +74,7 @@ function InventarioSala({ socket }) {
   const handleApagarItem = async (itemId) => {
     if (window.confirm("Descartar este item?")) {
       try {
-        const response = await fetchWithAuth(`http://127.0.0.1:5003/api/inventario-sala/${itemId}`, {
+        const response = await fetchWithAuth(`http://https://plataforma-rpg-mesa.onrender.com/api/inventario-sala/${itemId}`, {
           method: 'DELETE',
           body: JSON.stringify({ ficha_id: fichaId }) // Envia o ficha_id para verificação de posse.
         });

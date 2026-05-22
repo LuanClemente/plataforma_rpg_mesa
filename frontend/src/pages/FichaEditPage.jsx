@@ -16,7 +16,7 @@ function FichaEditPage() {
   useEffect(() => {
     const buscarFicha = async () => {
       try {
-        const response = await fetchWithAuth(`http://127.0.0.1:5003/api/fichas/${id}`);
+        const response = await fetchWithAuth(`http://https://plataforma-rpg-mesa.onrender.com/api/fichas/${id}`);
         const data = await response.json();
         if (response.ok) {
           setFicha(data);
@@ -54,7 +54,7 @@ function FichaEditPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
-      const response = await fetchWithAuth(`http://127.0.0.1:5003/api/fichas/${id}`, {
+      const response = await fetchWithAuth(`http://https://plataforma-rpg-mesa.onrender.com/api/fichas/${id}`, {
         method: 'PUT',
         body: JSON.stringify(ficha),
       });

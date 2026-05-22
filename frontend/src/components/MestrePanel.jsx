@@ -20,7 +20,7 @@ function MestrePanel({ socket, salaId, jogadores }) {
   const fecharModal = () => setModal(null);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:5003/api/itens')
+    fetch('http://https://plataforma-rpg-mesa.onrender.com/api/itens')
       .then(r => r.json())
       .then(data => { setItensDisp(data); if (data[0]) setItemSelecionado(data[0].nome); })
       .catch(() => {});
