@@ -6,7 +6,7 @@ import os
 import json
 import bcrypt
 # Importação relativa robusta para acessar o módulo 'monstro'
-from ..core.monstro import Monstro 
+from core.monstro import Monstro
 
 # --- LÓGICA DE CAMINHO ABSOLUTO E ROBUSTO ---
 # Garante que o caminho para o banco de dados seja sempre encontrado corretamente.
