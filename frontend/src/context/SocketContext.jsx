@@ -9,7 +9,7 @@ export const SocketProvider = ({ children }) => {
     const [socket, setSocket] = useState(null);
 
     useEffect(() => {
-        const newSocket = io('http://localhost:5003', {
+        const newSocket = io('https://plataforma-rpg-mesa.onrender.com', {
             transports: ['websocket', 'polling'],
             path: '/socket.io',
             autoConnect: true,

@@ -8,7 +8,7 @@ const BestiarioPage = () => {
     document.body.classList.add('bestiario-page-body');
 
     // Busca os dados da API do backend
-    fetch('http://localhost:5003/api/monstros')
+    fetch('https://plataforma-rpg-mesa.onrender.com/api/monstros')
       .then(response => response.json())
       .then(data => setMonstros(data))
       .catch(error => console.error('Erro ao buscar monstros:', error));
