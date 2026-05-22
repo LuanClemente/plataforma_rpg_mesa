@@ -9,7 +9,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret_de_cria_123!')
 
 # Puxa o CORS dinamicamente. Se não achar a variável, libera com '*' pra não quebrar nossos testes
-url_front = os.environ.get('FRONTEND_URL', '*')
+url_front = os.environ.get('https://plataforma-rpg-mesa.onrender.com', '*')
 
 # Se estiver rodando no Render, usa 'eventlet' (que aguenta o tranco). Local, vai de 'threading'
 async_mode = 'threading'
